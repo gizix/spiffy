@@ -1,0 +1,620 @@
+<!-- app/templates/randomizer/index.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Randomizer</h1>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">Create a Truly Shuffled Playlist</h5>
+
+                    <form id="createPlaylistForm" method="post" action="{{ url_for('randomizer.create_playlist') }}">
+                        <div class="row g-3 align-items-center">
+                            <!-- Source Selection -->
+                            <div class="col-md-4">
+                                <label for="source_type" class="form-label">Source:</label>
+                                <select class="form-select" id="source_type" name="source_type" required>
+                                    <option value="playlist">Playlist</option>
+                                    <option value="liked_songs">Liked Songs</option>
+                                </select>
+                            </div>
+
+                            <!-- Playlist Selector (shown conditionally) -->
+                            <div class="col-md-4" id="playlist_selector">
+                                <label for="source_playlist" class="form-label">Source Playlist:</label>
+                                <select class="form-select" id="source_playlist" name="source_playlist_id">
+                                    <option value="">Select a playlist...</option>
+                                    <!-- This will be populated with AJAX -->
+                                </select>
+                            </div>
+
+                            <!-- Playlist Name Input -->
+                            <div class="col-md-4">
+                                <label for="playlist_name" class="form-label">New Playlist Name:</label>
+                                <input type="text" class="form-control" id="playlist_name" name="playlist_name"
+                                       placeholder="Shuffled Playlist">
+                            </div>
+
+                            <!-- Shuffle Button -->
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-shuffle me-2"></i>Create Shuffled Playlist
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary ms-2" id="showRulesBtn">
+                                    <i class="bi bi-gear-fill"></i> Configure Rules
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Collapsible Rules Section -->
+                        <div class="collapse mt-4" id="rulesSection">
+                            <div class="card card-body bg-light">
+                                <h5>Shuffle Rules</h5>
+                                <p class="text-muted">Add rules to customize how your playlist is shuffled</p>
+
+                                <div id="rules-container">
+                                    <!-- This will be populated with rule widgets -->
+                                </div>
+
+                                <div class="mt-3">
+                                    <button type="button" id="add-rule" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-plus-circle me-1"></i>Add Rule
+                                    </button>
+
+                                    <div class="form-check form-switch d-inline-block ms-3">
+                                        <input class="form-check-input" type="checkbox" id="saveConfigCheck" name="save_config">
+                                        <label class="form-check-label" for="saveConfigCheck">Save as configuration</label>
+                                    </div>
+
+                                    <div class="collapse mt-2" id="configNameSection">
+                                        <input type="text" class="form-control form-control-sm"
+                                               name="config_name" placeholder="Configuration name">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if configs %}
+    <h2>Saved Configurations</h2>
+    <div class="row">
+        {% for config in configs %}
+        <div class="col-md-4 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ config.name }}</h5>
+                    <p class="card-text">
+                        <small class="text-muted">
+                            {% if config.last_used %}Last used: {{ config.last_used.strftime('%Y-%m-%d') }}{% endif %}
+                        </small>
+                    </p>
+
+                    <div class="d-flex justify-content-between">
+                        <button class="btn btn-sm btn-outline-primary load-config" data-config-id="{{ config.id }}">
+                            <i class="bi bi-arrow-up-right-circle me-1"></i>Load
+                        </button>
+                        <div>
+                            <a href="{{ url_for('randomizer.edit_config', id=config.id) }}" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-pencil me-1"></i>Edit
+                            </a>
+                            <form action="{{ url_for('randomizer.delete_config', id=config.id) }}" method="post" style="display: inline;">
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('Delete this configuration?');">
+                                    <i class="bi bi-trash me-1"></i>Delete
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if playlist_history %}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Playlist Creation History</h5>
+            <a href="{{ url_for('randomizer.sync_playlists') }}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-sync me-1"></i>Manage History
+            </a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Tracks</th>
+                            <th>Duration</th>
+                            <th>Artists</th>
+                            <th>Explicit</th>
+                            <th>Years</th>
+                            <th>Created</th>
+                            <th>Config</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for playlist in playlist_history %}
+                        <tr {% if playlist.is_deleted %}class="text-muted"{% endif %}>
+                            <td>
+                                <a href="https://open.spotify.com/playlist/{{ playlist.playlist_id }}"
+                                   target="_blank" class="d-flex align-items-center">
+                                    {% if playlist.is_deleted %}
+                                    <i class="bi bi-exclamation-circle-fill me-2 text-warning"></i>
+                                    {{ playlist.display_name or playlist.playlist_name }}
+                                    <span class="badge bg-secondary ms-2">Deleted</span>
+                                    {% else %}
+                                    <i class="bi bi-spotify me-2 text-success"></i>
+                                    {{ playlist.playlist_name }}
+                                    {% endif %}
+                                </a>
+                            </td>
+                            <td>{{ playlist.track_count }}</td>
+                            <td>{{ playlist.get_duration_minutes() }} min</td>
+                            <td>{{ playlist.artist_count }}</td>
+                            <td>
+                                {% if playlist.explicit_count > 0 %}
+                                    {{ playlist.explicit_count }}
+                                    ({{ (playlist.explicit_count / playlist.track_count * 100)|round if playlist.track_count > 0 else 0 }}%)
+                                {% else %}
+                                    0
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if playlist.oldest_year and playlist.newest_year %}
+                                    {% if playlist.oldest_year == playlist.newest_year %}
+                                        {{ playlist.oldest_year }}
+                                    {% else %}
+                                        {{ playlist.oldest_year }} - {{ playlist.newest_year }}
+                                    {% endif %}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>{{ playlist.created_at.strftime('%Y-%m-%d') }}</td>
+                            <td>
+                                {% if playlist.config %}
+                                    <a href="#" class="load-config" data-config-id="{{ playlist.config_id }}">
+                                        {{ playlist.config.name }}
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted">Ad-hoc</span>
+                                    {% if playlist.rules_used %}
+                                        <button class="btn btn-sm btn-outline-secondary view-rules"
+                                                data-bs-toggle="modal" data-bs-target="#rulesModal"
+                                                data-rules='{{ playlist.rules_used }}'>
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                    {% endif %}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rules Modal -->
+    <div class="modal fade" id="rulesModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Playlist Rules</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <ul id="rulesList"></ul>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveAsConfig">Save as Configuration</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Rule Template (hidden) -->
+    <template id="rule-template">
+        <div class="rule-entry mb-2">
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <select class="form-select rule-type" name="rules[][rule_type]">
+                        <option value="">Select rule type</option>
+                        <option value="artist_limit">Max songs per artist</option>
+                        <option value="min_duration">Min playlist duration (minutes)</option>
+                        <option value="max_duration">Max playlist duration (minutes)</option>
+                        <option value="min_year">Min release year</option>
+                        <option value="max_year">Max release year</option>
+                        <option value="min_popularity">Min popularity score</option>
+                        <option value="max_popularity">Max popularity score</option>
+                        <option value="explicit_filter">Explicit content filter</option>
+                        <option value="saved_within">Added to library within days</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <input type="text" class="form-control rule-parameter" name="rules[][parameter]" placeholder="Value">
+                </div>
+                <div class="col-md-4">
+                    <button type="button" class="btn btn-sm btn-outline-danger remove-rule">
+                        <i class="bi bi-x-circle"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </template>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Fetch user's playlists when page loads
+    fetch('{{ url_for("spotify.get_playlists") }}')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('source_playlist');
+            select.innerHTML = '<option value="">Select a playlist...</option>';
+
+            if (data.playlists && data.playlists.length > 0) {
+                data.playlists.forEach(playlist => {
+                    const option = document.createElement('option');
+                    option.value = playlist.id;
+                    option.textContent = `${playlist.name} (${playlist.tracks} tracks)`;
+                    select.appendChild(option);
+                });
+            }
+        })
+        .catch(error => console.error('Error fetching playlists:', error));
+
+    // Handle source type change
+    const sourceTypeSelect = document.getElementById('source_type');
+    const playlistSelector = document.getElementById('playlist_selector');
+
+    sourceTypeSelect.addEventListener('change', function() {
+        if (this.value === 'playlist') {
+            playlistSelector.style.display = 'block';
+            document.getElementById('source_playlist').setAttribute('required', 'required');
+        } else {
+            playlistSelector.style.display = 'none';
+            document.getElementById('source_playlist').removeAttribute('required');
+        }
+    });
+
+    // Toggle rules section
+    const showRulesBtn = document.getElementById('showRulesBtn');
+    const rulesSection = document.getElementById('rulesSection');
+
+    showRulesBtn.addEventListener('click', function() {
+        if (rulesSection.classList.contains('show')) {
+            rulesSection.classList.remove('show');
+            showRulesBtn.querySelector('i').classList.remove('bi-gear-fill');
+            showRulesBtn.querySelector('i').classList.add('bi-gear');
+        } else {
+            rulesSection.classList.add('show');
+            showRulesBtn.querySelector('i').classList.remove('bi-gear');
+            showRulesBtn.querySelector('i').classList.add('bi-gear-fill');
+        }
+    });
+
+    // Toggle save configuration section
+    const saveConfigCheck = document.getElementById('saveConfigCheck');
+    const configNameSection = document.getElementById('configNameSection');
+
+    saveConfigCheck.addEventListener('change', function() {
+        if (this.checked) {
+            configNameSection.classList.add('show');
+        } else {
+            configNameSection.classList.remove('show');
+        }
+    });
+
+    // Add rule functionality
+    const addRuleBtn = document.getElementById('add-rule');
+    const rulesContainer = document.getElementById('rules-container');
+    const ruleTemplate = document.getElementById('rule-template');
+
+    addRuleBtn.addEventListener('click', function() {
+        const ruleNode = document.importNode(ruleTemplate.content, true);
+        const removeBtn = ruleNode.querySelector('.remove-rule');
+
+        removeBtn.addEventListener('click', function() {
+            this.closest('.rule-entry').remove();
+        });
+
+        rulesContainer.appendChild(ruleNode);
+    });
+
+    // Load configuration
+    const loadConfigBtns = document.querySelectorAll('.load-config');
+
+    loadConfigBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            const configId = this.getAttribute('data-config-id');
+
+            fetch(`{{ url_for('randomizer.get_config_rules', id=0) }}`.replace('0', configId))
+                .then(response => response.json())
+                .then(data => {
+                    // Clear existing rules
+                    rulesContainer.innerHTML = '';
+
+                    // Add rules from configuration
+                    data.rules.forEach(rule => {
+                        const ruleNode = document.importNode(ruleTemplate.content, true);
+                        const ruleType = ruleNode.querySelector('.rule-type');
+                        const ruleParam = ruleNode.querySelector('.rule-parameter');
+                        const removeBtn = ruleNode.querySelector('.remove-rule');
+
+                        ruleType.value = rule.rule_type;
+                        ruleParam.value = rule.parameter;
+
+                        removeBtn.addEventListener('click', function() {
+                            this.closest('.rule-entry').remove();
+                        });
+
+                        rulesContainer.appendChild(ruleNode);
+                    });
+
+                    // Show rules section
+                    rulesSection.classList.add('show');
+                    showRulesBtn.querySelector('i').classList.remove('bi-gear');
+                    showRulesBtn.querySelector('i').classList.add('bi-gear-fill');
+                })
+                .catch(error => console.error('Error loading configuration:', error));
+        });
+    });
+
+    // Add event delegation for rule type changes
+    rulesContainer.addEventListener('change', function(event) {
+        // Check if the changed element is a rule type select
+        if (event.target.classList.contains('rule-type')) {
+            const ruleType = event.target.value;
+            const ruleEntry = event.target.closest('.rule-entry');
+            const parameterInput = ruleEntry.querySelector('.rule-parameter');
+
+            // Reset the parameter input
+            parameterInput.type = 'text';
+            parameterInput.placeholder = 'Value';
+            parameterInput.value = '';
+
+            // Configure the parameter input based on rule type
+            switch (ruleType) {
+                case 'explicit_filter':
+                    // Create a dropdown for explicit filter options
+                    const select = document.createElement('select');
+                    select.className = 'form-select rule-parameter';
+                    select.name = parameterInput.name;
+
+                    const options = [
+                        { value: 'any', text: 'Any content' },
+                        { value: 'clean_only', text: 'Clean content only' },
+                        { value: 'explicit_only', text: 'Explicit content only' }
+                    ];
+
+                    options.forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt.value;
+                        option.textContent = opt.text;
+                        select.appendChild(option);
+                    });
+
+                    // Replace the input with the select
+                    parameterInput.parentNode.replaceChild(select, parameterInput);
+                    break;
+
+                case 'artist_limit':
+                    parameterInput.type = 'number';
+                    parameterInput.min = '1';
+                    parameterInput.max = '10';
+                    parameterInput.placeholder = 'Number (1-10)';
+                    parameterInput.value = '1';
+                    break;
+
+                case 'min_duration':
+                case 'max_duration':
+                    parameterInput.type = 'number';
+                    parameterInput.min = '1';
+                    parameterInput.placeholder = 'Minutes';
+                    break;
+
+                case 'min_year':
+                case 'max_year':
+                    parameterInput.type = 'number';
+                    parameterInput.min = '1900';
+                    parameterInput.max = new Date().getFullYear();
+                    parameterInput.placeholder = 'Year (YYYY)';
+                    break;
+
+                case 'min_popularity':
+                case 'max_popularity':
+                    parameterInput.type = 'number';
+                    parameterInput.min = '0';
+                    parameterInput.max = '100';
+                    parameterInput.placeholder = 'Score (0-100)';
+                    break;
+
+                case 'saved_within':
+                    parameterInput.type = 'number';
+                    parameterInput.min = '1';
+                    parameterInput.placeholder = 'Days';
+                    parameterInput.value = '30';
+                    break;
+            }
+        }
+    });
+
+    // Form submission debugging
+    document.getElementById('createPlaylistForm').addEventListener('submit', function(e) {
+        // Don't prevent the form from submitting
+        // e.preventDefault();
+
+        // Log all form data
+        console.log('Form submission:');
+        const formData = new FormData(this);
+
+        // Log each form field
+        for (let pair of formData.entries()) {
+            console.log(`${pair[0]}: ${pair[1]}`);
+        }
+
+        // Check specifically for rules
+        let hasRules = false;
+        for (let pair of formData.entries()) {
+            if (pair[0].includes('rules[') && pair[0].includes('[rule_type]')) {
+                hasRules = true;
+                console.log(`Rule found: ${pair[0]} = ${pair[1]}`);
+            }
+        }
+
+        if (!hasRules) {
+            console.log('WARNING: No rules found in form submission!');
+        }
+
+        // Continue with form submission
+    });
+
+    // Playlist history functionality
+    const viewRulesBtns = document.querySelectorAll('.view-rules');
+    const rulesList = document.getElementById('rulesList');
+    const saveAsConfigBtn = document.getElementById('saveAsConfig');
+
+    // Simple view handler that just displays rules in the modal
+    if (viewRulesBtns && viewRulesBtns.length > 0 && rulesList) {
+        viewRulesBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const rulesJson = this.getAttribute('data-rules');
+                try {
+                    const rules = JSON.parse(rulesJson);
+                    rulesList.innerHTML = '';
+
+                    for (const [ruleType, parameter] of Object.entries(rules)) {
+                        const li = document.createElement('li');
+                        li.textContent = `${formatRuleType(ruleType)}: ${formatRuleParameter(ruleType, parameter)}`;
+                        rulesList.appendChild(li);
+                    }
+
+                    // Store rules for save as config functionality
+                    window.currentRules = rules;
+                } catch (e) {
+                    console.error("Error parsing rules:", e);
+                    rulesList.innerHTML = '<li class="text-danger">Error loading rules</li>';
+                }
+            });
+        });
+    }
+
+    // Save as config functionality
+    if (saveAsConfigBtn) {
+        saveAsConfigBtn.addEventListener('click', function() {
+            const rules = window.currentRules;
+            if (!rules) return;
+
+            // Show rules in the randomizer form
+            rulesContainer.innerHTML = '';
+
+            for (const [ruleType, parameter] of Object.entries(rules)) {
+                const ruleNode = document.importNode(ruleTemplate.content, true);
+                const ruleTypeSelect = ruleNode.querySelector('.rule-type');
+                const paramInput = ruleNode.querySelector('.rule-parameter');
+
+                ruleTypeSelect.value = ruleType;
+
+                // Handle explicit filter differently
+                if (ruleType === 'explicit_filter') {
+                    // Create dropdown for explicit filter options
+                    const select = document.createElement('select');
+                    select.className = 'form-select rule-parameter';
+                    select.name = paramInput.name;
+
+                    const options = [
+                        { value: 'any', text: 'Any content' },
+                        { value: 'clean_only', text: 'Clean content only' },
+                        { value: 'explicit_only', text: 'Explicit content only' }
+                    ];
+
+                    options.forEach(opt => {
+                        const option = document.createElement('option');
+                        option.value = opt.value;
+                        option.textContent = opt.text;
+                        if (opt.value === parameter) {
+                            option.selected = true;
+                        }
+                        select.appendChild(option);
+                    });
+
+                    paramInput.parentNode.replaceChild(select, paramInput);
+                } else {
+                    paramInput.value = parameter;
+                }
+
+                const removeBtn = ruleNode.querySelector('.remove-rule');
+                removeBtn.addEventListener('click', function() {
+                    this.closest('.rule-entry').remove();
+                });
+
+                rulesContainer.appendChild(ruleNode);
+            }
+
+            // Show the rules section and check the save config box
+            rulesSection.classList.add('show');
+            saveConfigCheck.checked = true;
+            configNameSection.classList.add('show');
+
+            // Close the modal
+            try {
+                const modal = bootstrap.Modal.getInstance(document.getElementById('rulesModal'));
+                if (modal) modal.hide();
+            } catch (e) {
+                console.error('Error closing modal:', e);
+            }
+
+            // Scroll to the top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+
+    // Helper functions for rule formatting
+    function formatRuleType(ruleType) {
+        const formats = {
+            'artist_limit': 'Max songs per artist',
+            'min_duration': 'Min playlist duration',
+            'max_duration': 'Max playlist duration',
+            'min_year': 'Min release year',
+            'max_year': 'Max release year',
+            'min_popularity': 'Min popularity',
+            'max_popularity': 'Max popularity',
+            'explicit_filter': 'Explicit content',
+            'saved_within': 'Added to library within'
+        };
+
+        return formats[ruleType] || ruleType;
+    }
+
+    function formatRuleParameter(ruleType, parameter) {
+        if (ruleType === 'explicit_filter') {
+            const formats = {
+                'any': 'Any content',
+                'clean_only': 'Clean content only',
+                'explicit_only': 'Explicit content only'
+            };
+            return formats[parameter] || parameter;
+        } else if (ruleType === 'min_duration' || ruleType === 'max_duration') {
+            return `${parameter} minutes`;
+        } else if (ruleType === 'saved_within') {
+            return `${parameter} days`;
+        }
+
+        return parameter;
+    }
+});
+</script>
+{% endblock %}

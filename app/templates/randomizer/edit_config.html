@@ -1,0 +1,305 @@
+<!-- app/templates/randomizer/edit_config.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Edit Configuration</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <form method="post" action="{{ url_for('randomizer.edit_config', id=config.id) }}">
+                <div class="mb-3">
+                    <label for="config_name" class="form-label">Configuration Name</label>
+                    <input type="text" class="form-control" id="config_name" name="config_name"
+                           value="{{ config.name }}" required>
+                </div>
+
+                <h5 class="mb-3">Rules</h5>
+
+                <div id="rules-container">
+                    {% for rule in rules %}
+                    <div class="rule-entry mb-2">
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <select class="form-select rule-type" name="rules[{{ loop.index0 }}][rule_type]">
+                                    <option value="artist_limit" {% if rule.rule_type == 'artist_limit' %}selected{% endif %}>
+                                        Max songs per artist
+                                    </option>
+                                    <option value="min_duration" {% if rule.rule_type == 'min_duration' %}selected{% endif %}>
+                                        Min playlist duration (minutes)
+                                    </option>
+                                    <option value="max_duration" {% if rule.rule_type == 'max_duration' %}selected{% endif %}>
+                                        Max playlist duration (minutes)
+                                    </option>
+                                    <option value="min_year" {% if rule.rule_type == 'min_year' %}selected{% endif %}>
+                                        Min release year
+                                    </option>
+                                    <option value="max_year" {% if rule.rule_type == 'max_year' %}selected{% endif %}>
+                                        Max release year
+                                    </option>
+                                    <option value="min_popularity" {% if rule.rule_type == 'min_popularity' %}selected{% endif %}>
+                                        Min popularity score
+                                    </option>
+                                    <option value="max_popularity" {% if rule.rule_type == 'max_popularity' %}selected{% endif %}>
+                                        Max popularity score
+                                    </option>
+                                    <option value="explicit_filter" {% if rule.rule_type == 'explicit_filter' %}selected{% endif %}>
+                                        Explicit content filter
+                                    </option>
+                                    <option value="saved_within" {% if rule.rule_type == 'saved_within' %}selected{% endif %}>
+                                        Added to library within days
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                {% if rule.rule_type == 'explicit_filter' %}
+                                <select class="form-select rule-parameter" name="rules[{{ loop.index0 }}][parameter]">
+                                    <option value="any" {% if rule.parameter == 'any' %}selected{% endif %}>Any content</option>
+                                    <option value="clean_only" {% if rule.parameter == 'clean_only' %}selected{% endif %}>Clean content only</option>
+                                    <option value="explicit_only" {% if rule.parameter == 'explicit_only' %}selected{% endif %}>Explicit content only</option>
+                                </select>
+                                {% else %}
+                                <input type="text" class="form-control rule-parameter"
+                                       name="rules[{{ loop.index0 }}][parameter]"
+                                       value="{{ rule.parameter }}" placeholder="Value">
+                                {% endif %}
+                            </div>
+                            <div class="col-md-4">
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-rule">
+                                    <i class="bi bi-x-circle"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <button type="button" id="add-rule" class="btn btn-outline-primary mb-3">
+                    <i class="bi bi-plus-circle me-1"></i>Add Rule
+                </button>
+
+                <div class="d-flex justify-content-between">
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a href="{{ url_for('randomizer.index') }}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Rule Template (hidden) -->
+<template id="rule-template">
+    <div class="rule-entry mb-2">
+        <div class="row g-2">
+            <div class="col-md-4">
+                <select class="form-select rule-type" name="">
+                    <option value="artist_limit">Max songs per artist</option>
+                    <option value="min_duration">Min playlist duration (minutes)</option>
+                    <option value="max_duration">Max playlist duration (minutes)</option>
+                    <option value="min_year">Min release year</option>
+                    <option value="max_year">Max release year</option>
+                    <option value="min_popularity">Min popularity score</option>
+                    <option value="max_popularity">Max popularity score</option>
+                    <option value="explicit_filter">Explicit content filter</option>
+                    <option value="saved_within">Added to library within days</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <input type="text" class="form-control rule-parameter" name="" placeholder="Value">
+            </div>
+            <div class="col-md-4">
+                <button type="button" class="btn btn-sm btn-outline-danger remove-rule">
+                    <i class="bi bi-x-circle"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const rulesContainer = document.getElementById('rules-container');
+    const addRuleBtn = document.getElementById('add-rule');
+    const ruleTemplate = document.getElementById('rule-template');
+
+    // Add a new rule entry
+    addRuleBtn.addEventListener('click', function() {
+        const ruleCount = rulesContainer.querySelectorAll('.rule-entry').length;
+        const ruleNode = document.importNode(ruleTemplate.content, true);
+
+        // Update field names with the correct index
+        const ruleType = ruleNode.querySelector('.rule-type');
+        const ruleParam = ruleNode.querySelector('.rule-parameter');
+
+        ruleType.setAttribute('name', `rules[${ruleCount}][rule_type]`);
+        ruleParam.setAttribute('name', `rules[${ruleCount}][parameter]`);
+
+        // Add removal event listener
+        const removeBtn = ruleNode.querySelector('.remove-rule');
+        removeBtn.addEventListener('click', function() {
+            this.closest('.rule-entry').remove();
+            updateIndices();
+        });
+
+        rulesContainer.appendChild(ruleNode);
+    });
+
+    // Set up removal buttons for initial entries
+    const removeButtons = document.querySelectorAll('.remove-rule');
+    removeButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            this.closest('.rule-entry').remove();
+            updateIndices();
+        });
+    });
+
+    // Update indices after removal
+    function updateIndices() {
+        const ruleEntries = rulesContainer.querySelectorAll('.rule-entry');
+        ruleEntries.forEach((entry, index) => {
+            const ruleType = entry.querySelector('.rule-type');
+            const ruleParam = entry.querySelector('.rule-parameter');
+
+            ruleType.setAttribute('name', `rules[${index}][rule_type]`);
+            ruleParam.setAttribute('name', `rules[${index}][parameter]`);
+        });
+    }
+
+    // Add event delegation for rule type changes
+    rulesContainer.addEventListener('change', function(event) {
+        // Check if the changed element is a rule type select
+        if (event.target.classList.contains('rule-type')) {
+            const ruleType = event.target.value;
+            const ruleEntry = event.target.closest('.rule-entry');
+            const parameterInput = ruleEntry.querySelector('.rule-parameter');
+
+            // Handle explicit filter specially
+            if (ruleType === 'explicit_filter' && parameterInput.tagName === 'INPUT') {
+                // Store current value
+                const currentValue = parameterInput.value;
+
+                // Create a dropdown for explicit filter options
+                const select = document.createElement('select');
+                select.className = 'form-select rule-parameter';
+                select.name = parameterInput.name;
+
+                const options = [
+                    { value: 'any', text: 'Any content' },
+                    { value: 'clean_only', text: 'Clean content only' },
+                    { value: 'explicit_only', text: 'Explicit content only' }
+                ];
+
+                options.forEach(opt => {
+                    const option = document.createElement('option');
+                    option.value = opt.value;
+                    option.textContent = opt.text;
+                    // Select the current value if it matches
+                    if (opt.value === currentValue) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                });
+
+                // Replace the input with the select
+                parameterInput.parentNode.replaceChild(select, parameterInput);
+            } else if (ruleType !== 'explicit_filter' && parameterInput.tagName === 'SELECT') {
+                // If changing from explicit_filter to something else, switch back to input
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.className = 'form-control rule-parameter';
+                input.name = parameterInput.name;
+                input.placeholder = 'Value';
+
+                // Replace the select with the input
+                parameterInput.parentNode.replaceChild(input, parameterInput);
+
+                // Configure the new input based on rule type
+                configureParameterInput(ruleType, input);
+            } else if (parameterInput.tagName === 'INPUT') {
+                // Configure the existing input based on rule type
+                configureParameterInput(ruleType, parameterInput);
+            }
+        }
+    });
+
+    // Helper function to configure parameter inputs based on rule type
+    function configureParameterInput(ruleType, input) {
+        // Reset to defaults
+        input.type = 'text';
+        input.min = '';
+        input.max = '';
+        input.placeholder = 'Value';
+
+        // Configure based on rule type
+        switch (ruleType) {
+            case 'artist_limit':
+                input.type = 'number';
+                input.min = '1';
+                input.max = '10';
+                input.placeholder = 'Number (1-10)';
+                if (!input.value) input.value = '1';
+                break;
+
+            case 'min_duration':
+            case 'max_duration':
+                input.type = 'number';
+                input.min = '1';
+                input.placeholder = 'Minutes';
+                break;
+
+            case 'min_year':
+            case 'max_year':
+                input.type = 'number';
+                input.min = '1900';
+                input.max = new Date().getFullYear();
+                input.placeholder = 'Year (YYYY)';
+                break;
+
+            case 'min_popularity':
+            case 'max_popularity':
+                input.type = 'number';
+                input.min = '0';
+                input.max = '100';
+                input.placeholder = 'Score (0-100)';
+                break;
+
+            case 'saved_within':
+                input.type = 'number';
+                input.min = '1';
+                input.placeholder = 'Days';
+                if (!input.value) input.value = '30';
+                break;
+        }
+    }
+
+    // Apply input configuration to existing rules on page load
+    document.querySelectorAll('.rule-type').forEach(select => {
+        if (select.value !== 'explicit_filter') {
+            const input = select.closest('.rule-entry').querySelector('.rule-parameter');
+            if (input && input.tagName === 'INPUT') {
+                configureParameterInput(select.value, input);
+            }
+        }
+    });
+
+    // Log form submission for debugging
+    document.querySelector('form').addEventListener('submit', function(e) {
+        console.log('Submitting rule configuration:');
+        const formData = new FormData(this);
+
+        // Check for rules
+        let hasRules = false;
+        for (let pair of formData.entries()) {
+            console.log(`${pair[0]}: ${pair[1]}`);
+            if (pair[0].includes('[rule_type]')) {
+                hasRules = true;
+            }
+        }
+
+        if (!hasRules) {
+            console.warn('Warning: No rules in configuration!');
+        }
+    });
+});
+</script>
+{% endblock %}

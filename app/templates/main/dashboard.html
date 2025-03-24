@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="alert alert-success">
+            <div class="d-flex align-items-center">
+                <i class="bi bi-spotify fs-3 me-3"></i>
+                <div>
+                    <strong>Welcome, {{ current_user.display_name or "Spotify User" }}!</strong>
+                    <p class="mb-0">Explore your Spotify data below.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    {% for data_type in data_types %}
+    <div class="col-md-4 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <h5>{{ data_type.name.replace('_', ' ').title() }}</h5>
+            </div>
+            <div class="card-body">
+                <p>{{ data_type.description }}</p>
+
+                {% if sync_status[data_type.id] %}
+                    <p><strong>Last synced:</strong> {{ sync_status[data_type.id].last_sync.strftime('%Y-%m-%d %H:%M') }}</p>
+                    <p><strong>Items:</strong> {{ sync_status[data_type.id].record_count }}</p>
+                {% else %}
+                    <p class="text-muted">Not yet synced</p>
+                {% endif %}
+            </div>
+            <div class="card-footer d-flex justify-content-between">
+                <a href="{{ url_for('spotify.sync_data', data_type=data_type.name) }}" class="btn btn-primary">
+                    {% if sync_status[data_type.id] %}Update{% else %}Sync{% endif %}
+                </a>
+
+                {% if sync_status[data_type.id] %}
+                    <a href="{{ url_for('spotify.visualize', data_type=data_type.name) }}" class="btn btn-success">Visualize</a>
+                {% else %}
+                    <button class="btn btn-success" disabled>Visualize</button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

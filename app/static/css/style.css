@@ -1,0 +1,70 @@
+/* Custom styles for Spiffy */
+
+:root {
+    --spotify-green: #1DB954;
+    --spotify-black: #191414;
+}
+
+.btn-success {
+    background-color: var(--spotify-green);
+    border-color: var(--spotify-green);
+}
+
+.btn-success:hover {
+    background-color: #1aa34a;
+    border-color: #1aa34a;
+}
+
+.bg-success {
+    background-color: var(--spotify-green) !important;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.navbar-dark {
+    background-color: var(--spotify-black);
+}
+
+.footer {
+    margin-top: auto;
+}
+
+/* Card styles */
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+/* Table hover effect */
+.table-hover tbody tr:hover {
+    background-color: rgba(29, 185, 84, 0.1);
+}
+
+/* Custom badge for Spotify connected status */
+.badge.bg-success {
+    background-color: var(--spotify-green) !important;
+}
+
+/* Add space at the bottom of the page */
+.container {
+    padding-bottom: 2rem;
+}
+
+/* Responsive font sizes */
+@media (max-width: 768px) {
+    h1 {
+        font-size: 1.8rem;
+    }
+
+    h2 {
+        font-size: 1.5rem;
+    }
+}

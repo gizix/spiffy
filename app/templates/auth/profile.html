@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header d-flex align-items-center">
+                <h4 class="mb-0">Your Spotify Profile</h4>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4 align-items-center">
+                    {% if current_user.profile_image %}
+                    <div class="col-md-2">
+                        <img src="{{ current_user.profile_image }}" class="img-fluid rounded-circle" alt="Profile Image">
+                    </div>
+                    <div class="col-md-10">
+                    {% else %}
+                    <div class="col-md-12">
+                    {% endif %}
+                        <h3 class="mb-3">{{ current_user.display_name or "Spotify User" }}</h3>
+
+                        <div class="mb-2"><strong>Spotify ID:</strong> {{ current_user.spotify_id }}</div>
+
+                        {% if current_user.email %}
+                        <div class="mb-2"><strong>Email:</strong> {{ current_user.email }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Member since:</div>
+                    <div class="col-md-8">{{ current_user.created_at.strftime('%B %d, %Y') }}</div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Last login:</div>
+                    <div class="col-md-8">
+                        {% if current_user.last_login %}
+                            {{ current_user.last_login.strftime('%B %d, %Y at %H:%M') }}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-4 fw-bold">Token expires:</div>
+                    <div class="col-md-8">
+                        {% if current_user.spotify_token_expiry %}
+                            {{ current_user.spotify_token_expiry.strftime('%B %d, %Y at %H:%M') }}
+
+                            {% if current_user.token_expired() %}
+                            <span class="badge bg-danger ms-2">Expired</span>
+                            <a href="{{ url_for('auth.login') }}" class="btn btn-sm btn-success ms-2">Refresh</a>
+                            {% else %}
+                            <span class="badge bg-success ms-2">Active</span>
+                            {% endif %}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{{ url_for('main.dashboard') }}" class="btn btn-primary">Go to Dashboard</a>
+                <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger float-end">Logout</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

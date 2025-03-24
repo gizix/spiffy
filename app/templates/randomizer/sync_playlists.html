@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container my-4">
+    <h1>Manage Playlist History</h1>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5>Playlist Status</h5>
+        </div>
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-md-4">
+                    <div class="p-3 border rounded">
+                        <h3>{{ active_count }}</h3>
+                        <p class="mb-0">Active Playlists</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 border rounded">
+                        <h3>{{ deleted_count }}</h3>
+                        <p class="mb-0">Deleted Playlists</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 border rounded">
+                        <h3>{{ total_count }}</h3>
+                        <p class="mb-0">Total Playlists</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Sync Playlists</h5>
+                </div>
+                <div class="card-body">
+                    <p>Check if playlists in your history still exist on Spotify</p>
+                    <form method="POST">
+                        <input type="hidden" name="action" value="sync">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-sync-alt"></i> Sync with Spotify
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5>Manage Deleted Playlists</h5>
+                </div>
+                <div class="card-body">
+                    {% if deleted_count > 0 %}
+                        <p>You have {{ deleted_count }} deleted playlists in your history</p>
+                        <form method="POST">
+                            <input type="hidden" name="action" value="unlink">
+                            
+                            <div class="form-group mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="keep_history" 
+                                           id="keepHistory" value="true" checked>
+                                    <label class="form-check-label" for="keepHistory">
+                                        Keep deleted playlists in history (marked as deleted)
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="keep_history" 
+                                           id="removeHistory" value="false">
+                                    <label class="form-check-label" for="removeHistory">
+                                        Remove deleted playlists from history
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-warning">
+                                <i class="fas fa-unlink"></i> Process Deleted Playlists
+                            </button>
+                        </form>
+                    {% else %}
+                        <p>No deleted playlists found in your history.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-3">
+        <a href="{{ url_for('randomizer.index') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Randomizer
+        </a>
+    </div>
+</div>
+{% endblock %}

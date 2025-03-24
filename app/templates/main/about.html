@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 offset-md-2">
+        <div class="card">
+            <div class="card-header">
+                <h2>About Spiffy</h2>
+            </div>
+            <div class="card-body">
+                <p class="lead">
+                    Spiffy is a web application that helps you visualize and explore your Spotify listening habits in new ways.
+                    Need a new shuffle? Easily create custom tailored playlists with our Randomizer feature.
+                </p>
+                
+                <h4>Features</h4>
+                <ul>
+                    <li>Connect to your Spotify account securely</li>
+                    <li>Analyze your top tracks and artists</li>
+                    <li>Explore your playlists and saved songs</li>
+                    <li>Visualize your music preferences with interactive charts</li>
+                    <li>Keep your data private with local storage</li>
+                    <li>
+                        <strong>Randomizer:</strong> Create customized shuffled playlists with advanced filtering
+                        <ul>
+                            <li>Filter tracks by artist limit, duration, release year, and more</li>
+                            <li>Save shuffle configurations for future use</li>
+                            <li>Track and manage playlist creation history</li>
+                            <li>Create playlists from either your saved tracks or existing playlists</li>
+                        </ul>
+                    </li>
+                </ul>
+
+                <h4>How It Works</h4>
+                <p>
+                    Spiffy uses the official Spotify Web API to fetch data about your listening habits.
+                    Your data is stored in a local SQLite database, so you maintain complete control over your information.
+                </p>
+                <p>
+                    The Randomizer creates smarter shuffled playlists by applying customizable rules to your
+                    music library. Unlike Spotify's basic shuffle, our system lets you control exactly how your playlists
+                    are generated, with options to limit artists, balance music from different eras, and create the perfect
+                    mix for any occasion. Other than the random number generator, no other algorithms are used to shuffle
+                    your tracks for a truly random shuffle.
+                </p>
+
+                <h4>Privacy</h4>
+                <p>
+                    We take your privacy seriously. Your Spotify data is stored locally and is not shared with any third parties.
+                    You can delete your account and all associated data at any time.
+                </p>
+
+                <h4>Technologies Used</h4>
+                <ul>
+                    <li>Python with Flask web framework</li>
+                    <li>SQLite for data storage</li>
+                    <li>Spotipy for Spotify API integration</li>
+                    <li>Chart.js for data visualization</li>
+                    <li>Bootstrap for responsive design</li>
+                </ul>
+
+                <div class="mt-4">
+                    <h4>New in Latest Version</h4>
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h5 class="card-title">Enhanced Playlist Management</h5>
+                            <ul>
+                                <li>Playlist history synchronization to identify deleted playlists</li>
+                                <li>Ability to clean up or retain deleted playlist records</li>
+                                <li>Improved playlist creation history with detailed statistics</li>
+                                <li>Save and reuse successful playlist configurations</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
