@@ -1,0 +1,17 @@
+.env
+.cache
+.venv
+.idea
+poetry.lock
+.flaskenv
+migrations
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+*.log
+assets
+instance
+logs
