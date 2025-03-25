@@ -37,17 +37,46 @@
                                 <th>Artist</th>
                                 <th>Album</th>
                                 <th>Popularity</th>
+                                <th>Time Range</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for item in items %}
-                            {% set track_data = item.data|replace("'", '"')|from_json %}
                             <tr>
                                 <td>{{ loop.index }}</td>
                                 <td>{{ item.name }}</td>
-                                <td>{{ track_data.artists[0].name }}</td>
-                                <td>{{ track_data.album.name }}</td>
-                                <td>{{ track_data.popularity }}</td>
+                                <td>
+                                    {% if item.json_data and item.json_data.artists %}
+                                        {% if item.json_data.artists|length > 0 %}
+                                            {{ item.json_data.artists[0].name }}
+                                        {% else %}
+                                            Unknown Artist
+                                        {% endif %}
+                                    {% else %}
+                                        Unknown Artist
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.json_data and item.json_data.album %}
+                                        {{ item.json_data.album.name }}
+                                    {% else %}
+                                        Unknown Album
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.json_data and item.json_data.popularity is defined %}
+                                        {{ item.json_data.popularity }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.json_data and item.json_data.time_range %}
+                                        {{ item.json_data.time_range }}
+                                    {% else %}
+                                        Unknown
+                                    {% endif %}
+                                </td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -62,9 +91,25 @@
 {% block scripts %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const trackNames = [{% for item in items %}{% if loop.index <= 10 %}"{{ item.name }}"{% if not loop.last %}, {% endif %}{% endif %}{% endfor %}];
-    const trackPopularity = [{% for item in items %}{% if loop.index <= 10 %}{{ item.data|replace("'", '"')|from_json.popularity }}{% if not loop.last %}, {% endif %}{% endif %}{% endfor %}];
-    
+    // Prepare data for chart
+    const trackData = [];
+
+    {% for item in items %}
+        {% if loop.index <= 10 %}
+            trackData.push({
+                name: "{{ item.name }}",
+                popularity: {% if item.json_data and item.json_data.popularity is defined %}{{ item.json_data.popularity }}{% else %}0{% endif %}
+            });
+        {% endif %}
+    {% endfor %}
+
+    // Sort by popularity (optional)
+    trackData.sort((a, b) => b.popularity - a.popularity);
+
+    // Extract sorted data for chart
+    const trackNames = trackData.map(item => item.name);
+    const trackPopularity = trackData.map(item => item.popularity);
+
     const ctx = document.getElementById('popularityChart').getContext('2d');
     const chart = new Chart(ctx, {
         type: 'bar',

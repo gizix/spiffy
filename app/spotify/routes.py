@@ -409,14 +409,41 @@ def visualize(data_type):
             try:
                 # Try to parse the data JSON string
                 if "data" in item_dict and item_dict["data"]:
-                    # Replace single quotes with double quotes for proper JSON parsing
-                    json_str = item_dict["data"].replace("'", '"')
-                    item_dict["json_data"] = json.loads(json_str)
+                    # More robust JSON parsing
+                    try:
+                        # First attempt direct parsing
+                        item_dict["json_data"] = json.loads(item_dict["data"])
+                    except json.JSONDecodeError:
+                        # If that fails, try with string replacements
+                        # Fix common JSON formatting issues
+                        json_str = item_dict["data"]
+                        # Replace Python-style single quotes with JSON-style double quotes
+                        json_str = json_str.replace("'", '"')
+                        # Handle potential escaped single quotes within strings
+                        json_str = json_str.replace('\\"', '\\\\"')
+                        # Try to parse again
+                        try:
+                            item_dict["json_data"] = json.loads(json_str)
+                        except json.JSONDecodeError:
+                            # If all parsing attempts fail, set an empty dict
+                            current_app.logger.warning(f"Could not parse JSON for item {item_dict.get('id')}")
+                            item_dict["json_data"] = {}
                 else:
                     item_dict["json_data"] = {}
             except Exception as json_err:
                 current_app.logger.error(f"JSON parsing error: {str(json_err)}")
                 item_dict["json_data"] = {}
+
+            # Ensure required fields exist for visualization templates
+            if data_type == "top_tracks" and "json_data" in item_dict:
+                # Make sure artists field exists
+                if "artists" not in item_dict["json_data"]:
+                    item_dict["json_data"]["artists"] = []
+
+                # Handle time_range if missing
+                if "time_range" not in item_dict["json_data"]:
+                    # Try to extract from the id or set a default
+                    item_dict["json_data"]["time_range"] = "unknown"
 
             items.append(item_dict)
 
@@ -425,7 +452,7 @@ def visualize(data_type):
         # Check if the specific template exists, otherwise use a generic one
         template_path = f"spotify/visualize_{data_type}.html"
         if not os.path.exists(
-            os.path.join(current_app.root_path, "templates", template_path)
+                os.path.join(current_app.root_path, "templates", template_path)
         ):
             template_path = "spotify/visualize_generic.html"
 

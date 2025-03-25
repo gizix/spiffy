@@ -23,6 +23,7 @@ spiffy/
 ├── init_data.py
 ├── poetry.lock
 ├── pyproject.toml
+├── requirements.txt
 └── run.py
 ├── tests/
 │   ├── __init__.py
@@ -72,6 +73,8 @@ spiffy/
 │   │   │   └── style.css
 │   │   ├── images/
 │   │   │   └── spiffy-logo.png
+│   │   ├── js/
+│   │   │   └── loading-helper.js
 ├── instance/
 │   └── app.db
 │   ├── user_data/
@@ -79,6 +82,8 @@ spiffy/
 ├── logs/
 │   └── spotify_explorer.log
 ├── assets/
+│   ├── docs/
+│   │   └── Loading Modal.md
 ```
 
 ## Key Components
@@ -92,7 +97,7 @@ spiffy/
 
 ### .cache
 
-Text file: {"access_token": "BQDgEScyA8i0L8jervlvXtHor5P49mdsYMHWi9GsiaosLfolELwtm5hjjsVageaiPimJPxCK7frI0beYkR...
+Text file: {"access_token": "BQAgnP2CMGKQEKvL9vw3lWeV-l5mFYU38kmeG54DGHFtuTIwdp2ulpITT3csXMhvTlWCoXw66HBQkK-ke1...
 
 ### .env
 
@@ -102,6 +107,22 @@ SPOTIFY_CLIENT_SECRET=62a9086b35d74b2389e2604c19e...
 ### .flaskenv
 
 
+
+### .gitignore
+
+Text file: .env
+.cache
+.venv
+.idea
+poetry.lock
+.flaskenv
+migrations
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlit...
 
 ### .python-version
 
@@ -122,7 +143,7 @@ Generate a summary for the given file.
 
 ### init_data.py
 
-Imports: app, app.models Defines functions: init_spotify_data_types
+Imports: app.models, app Defines functions: init_spotify_data_types
 
 ### poetry.lock
 
@@ -131,6 +152,15 @@ File with .lock extension
 ### pyproject.toml
 
 File with .toml extension
+
+### requirements.txt
+
+Text file: alembic==1.15.1
+black==25.1.0
+blinker==1.9.0
+certifi==2025.1.31
+charset-normalizer==3.4.1
+click==8.1...
 
 ### run.py
 
@@ -146,7 +176,7 @@ Imports: app, flask_migrate Defines functions: check_database
 
 ### tests/debug_users.py
 
-Imports: app, sys, app.models Defines functions: debug_users
+Imports: app.models, app, sys Defines functions: debug_users
 
 ### tests/test_basic.py
 
@@ -272,6 +302,10 @@ CSS file with 14 style definitions
 
 Binary file or encoding issues
 
+### app/static/js/loading-helper.js
+
+File with .js extension
+
 ### instance/app.db
 
 Binary file or encoding issues
@@ -316,4 +350,4 @@ File with .log extension
 
 This application was created using Flask, Spotipy, and other open-source libraries.
 
-Generated on: 2025-03-23
+Generated on: 2025-03-24

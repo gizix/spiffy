@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Initial Loading Container - Hidden when data is processed -->
+<div id="initialLoadingContainer" class="text-center py-5">
+    <div class="spinner-border text-primary mb-3" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <h5 id="loadingStatus">Processing your library...</h5>
+    <div class="progress mt-3" style="height: 10px;">
+        <div id="loadingProgressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+    </div>
+</div>
+
+<!-- Main content - Hidden until loading is complete -->
+<div id="mainContent" style="display: none;">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1>Your Saved Tracks</h1>
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">Back to Dashboard</a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <canvas id="popularityDistribution" width="400" height="200"></canvas>
+                        </div>
+                        <div class="col-md-6">
+                            <canvas id="artistsChart" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5>Your Saved Tracks</h5>
+                    <div class="d-flex">
+                        <button class="btn btn-outline-secondary me-2" id="toggleFilters">
+                            <i class="bi bi-funnel-fill"></i> Filters
+                        </button>
+                        <div class="input-group me-2" style="width: 300px;">
+                            <input type="text" class="form-control" id="searchInput" placeholder="Search...">
+                            <button class="btn btn-outline-secondary" type="button" id="searchButton">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                        <select class="form-select" id="pageSizeSelect" style="width: auto;">
+                            <option value="10">10 per page</option>
+                            <option value="25">25 per page</option>
+                            <option value="50" selected>50 per page</option>
+                            <option value="100">100 per page</option>
+                            <option value="0">Show all</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card-body collapse" id="filtersContainer">
+                    <div class="row mb-3">
+                        <div class="col-md-3">
+                            <label for="artistFilter" class="form-label">Artist</label>
+                            <select class="form-select" id="artistFilter">
+                                <option value="">All Artists</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="albumFilter" class="form-label">Album</label>
+                            <select class="form-select" id="albumFilter">
+                                <option value="">All Albums</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="popularityFilter" class="form-label">Min. Popularity</label>
+                            <input type="range" class="form-range" id="popularityFilter" min="0" max="100" value="0">
+                            <div class="d-flex justify-content-between">
+                                <small>0</small>
+                                <small id="popularityValue">0</small>
+                                <small>100</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="yearFilter" class="form-label">Release Year</label>
+                            <select class="form-select" id="yearFilter">
+                                <option value="">All Years</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end">
+                        <button class="btn btn-secondary" id="resetFilters">Reset Filters</button>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover" id="tracksTable">
+                        <thead>
+                            <tr>
+                                <th class="sortable" data-sort="index">#</th>
+                                <th class="sortable" data-sort="track">Track <i class="bi bi-arrow-down-up"></i></th>
+                                <th class="sortable" data-sort="artist">Artist <i class="bi bi-arrow-down-up"></i></th>
+                                <th class="sortable" data-sort="album">Album <i class="bi bi-arrow-down-up"></i></th>
+                                <th class="sortable" data-sort="popularity">Popularity <i class="bi bi-arrow-down-up"></i></th>
+                                <th class="sortable" data-sort="duration">Duration <i class="bi bi-arrow-down-up"></i></th>
+                                <th class="sortable" data-sort="saved_at">Saved Date <i class="bi bi-arrow-down-up"></i></th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr class="track-row"
+                                data-track="{{ item.name }}"
+                                data-artist="{% if item.json_data and item.json_data.artists %}{{ item.json_data.artists[0].name }}{% endif %}"
+                                data-album="{% if item.json_data and item.json_data.album %}{{ item.json_data.album.name }}{% endif %}"
+                                data-popularity="{% if item.json_data and item.json_data.popularity is defined %}{{ item.json_data.popularity }}{% else %}0{% endif %}"
+                                data-saved-at="{% if item.json_data and item.json_data.saved_at %}{{ item.json_data.saved_at }}{% endif %}"
+                                data-release-date="{% if item.json_data and item.json_data.album and item.json_data.album.release_date %}{{ item.json_data.album.release_date }}{% endif %}"
+                                data-duration="{{ item.json_data.duration_ms if item.json_data and item.json_data.duration_ms is defined else 0 }}">
+                                <td>{{ loop.index }}</td>
+                                <td>{{ item.name }}</td>
+                                <td>
+                                    {% if item.json_data and item.json_data.artists %}
+                                        {% if item.json_data.artists|length > 0 %}
+                                            {{ item.json_data.artists[0].name }}
+                                            {% if item.json_data.artists|length > 1 %}
+                                                <span class="text-muted">+{{ item.json_data.artists|length - 1 }}</span>
+                                            {% endif %}
+                                        {% else %}
+                                            Unknown Artist
+                                        {% endif %}
+                                    {% else %}
+                                        Unknown Artist
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.json_data and item.json_data.album %}
+                                        {{ item.json_data.album.name }}
+                                    {% else %}
+                                        Unknown Album
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.json_data and item.json_data.popularity is defined %}
+                                        <div class="progress" style="height: 5px;">
+                                            <div class="progress-bar" role="progressbar"
+                                                style="width: {{ item.json_data.popularity }}%;"
+                                                aria-valuenow="{{ item.json_data.popularity }}"
+                                                aria-valuemin="0"
+                                                aria-valuemax="100">
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">{{ item.json_data.popularity }}</small>
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.json_data and item.json_data.duration_ms is defined %}
+                                        {{ (item.json_data.duration_ms / 60000)|int }}:{{ '{:02d}'.format(((item.json_data.duration_ms % 60000) / 1000)|int) }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if item.json_data and item.json_data.saved_at %}
+                                        {{ item.json_data.saved_at.split('T')[0] }}
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary"
+                                            data-bs-toggle="collapse"
+                                            data-bs-target="#details-{{ loop.index }}">
+                                        Details
+                                    </button>
+                                    {% if item.json_data and item.json_data.external_urls and item.json_data.external_urls.spotify %}
+                                    <a href="{{ item.json_data.external_urls.spotify }}" target="_blank" class="btn btn-sm btn-outline-success">
+                                        <i class="bi bi-spotify"></i>
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr class="collapse" id="details-{{ loop.index }}">
+                                <td colspan="8">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <div class="row">
+                                                {% if item.json_data and item.json_data.album and item.json_data.album.images and item.json_data.album.images|length > 0 %}
+                                                <div class="col-md-2">
+                                                    <img src="{{ item.json_data.album.images[0].url }}" class="img-fluid rounded" alt="Album cover">
+                                                </div>
+                                                {% endif %}
+                                                <div class="col">
+                                                    <h5>{{ item.name }}</h5>
+                                                    <p>
+                                                        <strong>Artists:</strong>
+                                                        {% if item.json_data and item.json_data.artists %}
+                                                            {% for artist in item.json_data.artists %}
+                                                                {% if not loop.first %}, {% endif %}
+                                                                {{ artist.name }}
+                                                            {% endfor %}
+                                                        {% else %}
+                                                            Unknown
+                                                        {% endif %}
+                                                    </p>
+                                                    <p>
+                                                        <strong>Album:</strong>
+                                                        {% if item.json_data and item.json_data.album %}
+                                                            {{ item.json_data.album.name }}
+                                                            ({{ item.json_data.album.album_type|capitalize }})
+                                                            {% if item.json_data.album.release_date %}
+                                                                - Released: {{ item.json_data.album.release_date }}
+                                                            {% endif %}
+                                                        {% else %}
+                                                            Unknown
+                                                        {% endif %}
+                                                    </p>
+                                                    <p>
+                                                        <strong>Track Details:</strong>
+                                                        Track #{{ item.json_data.track_number if item.json_data and item.json_data.track_number is defined else 'N/A' }}
+                                                        {% if item.json_data and item.json_data.disc_number is defined %}
+                                                            on Disc {{ item.json_data.disc_number }}
+                                                        {% endif %}
+                                                    </p>
+                                                    <p>
+                                                        <strong>Saved on:</strong>
+                                                        {% if item.json_data and item.json_data.saved_at %}
+                                                            {{ item.json_data.saved_at }}
+                                                        {% else %}
+                                                            Unknown
+                                                        {% endif %}
+                                                    </p>
+                                                    <h6>Full Data:</h6>
+                                                    <pre class="mb-0"><code>{{ item.json_data | tojson(indent=2) }}</code></pre>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    <div>
+                        <span id="displayedRowsInfo">Showing 0 of 0 tracks</span>
+                    </div>
+                    <nav aria-label="Table pagination">
+                        <ul class="pagination mb-0" id="paginationContainer">
+                            <!-- Pagination will be generated by JavaScript -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div> <!-- Close the mainContent div -->
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/saved_tracks.js') }}"></script>
+{% endblock %}
