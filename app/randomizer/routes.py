@@ -176,6 +176,7 @@ def create_playlist():
             redirect_uri=current_app.config["SPOTIFY_REDIRECT_URI"],
             scope=current_app.config["SPOTIFY_API_SCOPES"],
             cache_path=None,
+            show_dialog=True,
         )
 
         if current_user.spotify_refresh_token:

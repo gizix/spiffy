@@ -44,6 +44,7 @@ def get_spotify_client():
                 redirect_uri=current_app.config["SPOTIFY_REDIRECT_URI"],
                 scope=current_app.config["SPOTIFY_API_SCOPES"],
                 cache_path=None,
+                show_dialog=True,
             )
 
             # Use the refresh token to get a new access token

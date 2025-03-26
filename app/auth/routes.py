@@ -33,24 +33,34 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for("main.dashboard"))
 
-    # Redirect to Spotify authorization
+    # Generate a unique state for this login session
+    import secrets
+    state = secrets.token_urlsafe(16)
+    session['spotify_auth_state'] = state
+
+    # Redirect to Spotify authorization with state parameter
     sp_oauth = SpotifyOAuth(
         client_id=current_app.config["SPOTIFY_CLIENT_ID"],
         client_secret=current_app.config["SPOTIFY_CLIENT_SECRET"],
-        redirect_uri=current_app.config[
-            "SPOTIFY_REDIRECT_URI"
-        ],  # Should be http://localhost:5000/callback
+        redirect_uri=current_app.config["SPOTIFY_REDIRECT_URI"],
         scope="user-library-read user-top-read playlist-read-private user-read-recently-played user-read-email",
-        cache_path=None,
-        show_dialog=True,
+        cache_path=None,  # Don't use file-based caching
+        show_dialog=True,  # Force user to select account
     )
-    auth_url = sp_oauth.get_authorize_url()
+    auth_url = sp_oauth.get_authorize_url(state=state)
     return redirect(auth_url)
 
 
 @bp.route("/callback")
 @bp.route("/login/callback")
 def callback():
+    # Verify state to prevent CSRF
+    state = request.args.get('state')
+    stored_state = session.get('spotify_auth_state')
+    if state is None or state != stored_state:
+        flash("Authentication error: State verification failed")
+        return redirect(url_for("main.index"))
+
     # Log all request data for debugging
     current_app.logger.info(f"Callback received with args: {request.args}")
 
@@ -79,6 +89,7 @@ def callback():
             redirect_uri=current_app.config["SPOTIFY_REDIRECT_URI"],
             scope="user-library-read user-top-read playlist-read-private user-read-recently-played user-read-email",
             cache_path=None,
+            show_dialog=True,
         )
 
         # Exchange code for token
