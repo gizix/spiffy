@@ -426,7 +426,9 @@ def visualize(data_type):
                             item_dict["json_data"] = json.loads(json_str)
                         except json.JSONDecodeError:
                             # If all parsing attempts fail, set an empty dict
-                            current_app.logger.warning(f"Could not parse JSON for item {item_dict.get('id')}")
+                            current_app.logger.warning(
+                                f"Could not parse JSON for item {item_dict.get('id')}"
+                            )
                             item_dict["json_data"] = {}
                 else:
                     item_dict["json_data"] = {}
@@ -452,7 +454,7 @@ def visualize(data_type):
         # Check if the specific template exists, otherwise use a generic one
         template_path = f"spotify/visualize_{data_type}.html"
         if not os.path.exists(
-                os.path.join(current_app.root_path, "templates", template_path)
+            os.path.join(current_app.root_path, "templates", template_path)
         ):
             template_path = "spotify/visualize_generic.html"
 

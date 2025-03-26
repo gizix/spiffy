@@ -31,6 +31,10 @@ def create_app(config_class=Config):
 
     app.register_blueprint(spotify_bp, url_prefix="/spotify")
 
+    from app.admin import bp as admin_bp
+
+    app.register_blueprint(admin_bp, url_prefix="/admin")
+
     from app.randomizer import randomizer as randomizer_bp
 
     app.register_blueprint(randomizer_bp)

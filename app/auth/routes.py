@@ -13,7 +13,8 @@ import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from app import db
 from app.auth import bp
-from app.models import User
+from app.models import User, BetaSignup
+from app.auth.forms import BetaSignupForm
 
 
 def get_spotify_oauth():
@@ -153,3 +154,18 @@ def logout():
 @login_required
 def profile():
     return render_template("auth/profile.html", title="Profile")
+
+
+@bp.route("/beta-signup", methods=["GET", "POST"])
+def beta_signup():
+    form = BetaSignupForm()
+
+    if form.validate_on_submit():
+        signup = BetaSignup(name=form.name.data, email=form.email.data)
+        db.session.add(signup)
+        db.session.commit()
+
+        flash("Thank you for joining our beta! We'll be in touch soon.", "success")
+        return redirect(url_for("main.index"))
+
+    return render_template("auth/beta_signup.html", title="Join the Beta", form=form)

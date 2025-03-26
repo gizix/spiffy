@@ -41,6 +41,7 @@ spiffy/
 │   │   └── base.html
 │   │   ├── spotify/
 │   │   │   ├── visualize_generic.html
+│   │   │   ├── visualize_saved_tracks.html
 │   │   │   └── visualize_top_tracks.html
 │   │   ├── randomizer/
 │   │   │   ├── edit_config.html
@@ -74,7 +75,8 @@ spiffy/
 │   │   ├── images/
 │   │   │   └── spiffy-logo.png
 │   │   ├── js/
-│   │   │   └── loading-helper.js
+│   │   │   ├── loading-helper.js
+│   │   │   └── saved_tracks.js
 ├── instance/
 │   └── app.db
 │   ├── user_data/
@@ -97,7 +99,7 @@ spiffy/
 
 ### .cache
 
-Text file: {"access_token": "BQAgnP2CMGKQEKvL9vw3lWeV-l5mFYU38kmeG54DGHFtuTIwdp2ulpITT3csXMhvTlWCoXw66HBQkK-ke1...
+Text file: {"access_token": "BQDpLF2Q-JIhzsF-ef-kHsg7P3y-XxBskBzGkCZ8eKQFin1fbHU4Hn22DZnIR89fIUSXy1A4gs22yU3dMv...
 
 ### .env
 
@@ -143,7 +145,7 @@ Generate a summary for the given file.
 
 ### init_data.py
 
-Imports: app.models, app Defines functions: init_spotify_data_types
+Imports: app, app.models Defines functions: init_spotify_data_types
 
 ### poetry.lock
 
@@ -172,11 +174,11 @@ Package initialization file
 
 ### tests/check_db.py
 
-Imports: app, flask_migrate Defines functions: check_database
+Imports: flask_migrate, app Defines functions: check_database
 
 ### tests/debug_users.py
 
-Imports: app.models, app, sys Defines functions: debug_users
+Imports: sys, app, app.models Defines functions: debug_users
 
 ### tests/test_basic.py
 
@@ -207,6 +209,10 @@ Get an authenticated Spotify client for a user
 Base template providing layout structure for the application
 
 ### app/templates/spotify/visualize_generic.html
+
+Spotify template extending base.html
+
+### app/templates/spotify/visualize_saved_tracks.html
 
 Spotify template extending base.html
 
@@ -306,6 +312,10 @@ Binary file or encoding issues
 
 File with .js extension
 
+### app/static/js/saved_tracks.js
+
+File with .js extension
+
 ### instance/app.db
 
 Binary file or encoding issues
@@ -350,4 +360,4 @@ File with .log extension
 
 This application was created using Flask, Spotipy, and other open-source libraries.
 
-Generated on: 2025-03-24
+Generated on: 2025-03-25

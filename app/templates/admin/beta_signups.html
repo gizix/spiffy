@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2>Beta Signups <span class="badge bg-success">{{ signups|length }}</span></h2>
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+</div>
+
+{% if signups %}
+<div class="card">
+    <div class="card-header bg-dark text-white">
+        <div class="row">
+            <div class="col-md-4">Name</div>
+            <div class="col-md-4">Email</div>
+            <div class="col-md-4">Signup Date</div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+            {% for signup in signups %}
+            <div class="list-group-item">
+                <div class="row">
+                    <div class="col-md-4">{{ signup.name }}</div>
+                    <div class="col-md-4">
+                        <a href="mailto:{{ signup.email }}">{{ signup.email }}</a>
+                    </div>
+                    <div class="col-md-4">{{ signup.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i> No beta signups yet.
+</div>
+{% endif %}
+
+<div class="row mt-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header bg-dark text-white">
+                <h5 class="mb-0">Export Options</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('admin.export_signups', format='csv') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-filetype-csv"></i> Export as CSV
+                    </a>
+                    <a href="{{ url_for('admin.export_signups', format='json') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-filetype-json"></i> Export as JSON
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
