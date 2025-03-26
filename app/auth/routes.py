@@ -17,13 +17,32 @@ from app.models import User, BetaSignup
 from app.auth.forms import BetaSignupForm
 
 
-def get_spotify_oauth():
+def get_spotify_oauth(user_id=None):
+    """
+    Get a SpotifyOAuth instance with user-specific cache path
+    """
+    # Create a unique cache path if user_id is provided
+    if user_id:
+        cache_path = f".spotify_cache_{user_id}"
+    else:
+        # For unauthenticated users, use a temporary cache with session ID
+        import secrets
+
+        cache_id = session.get("spotify_cache_id")
+        if not cache_id:
+            cache_id = secrets.token_urlsafe(8)
+            session["spotify_cache_id"] = cache_id
+        cache_path = f".spotify_cache_temp_{cache_id}"
+
+    # Log the cache path being used
+    current_app.logger.info(f"Using Spotify cache path: {cache_path}")
+
     return SpotifyOAuth(
         client_id=current_app.config["SPOTIFY_CLIENT_ID"],
         client_secret=current_app.config["SPOTIFY_CLIENT_SECRET"],
         redirect_uri=current_app.config["SPOTIFY_REDIRECT_URI"],
         scope=current_app.config["SPOTIFY_API_SCOPES"],
-        cache_path=None,
+        cache_path=cache_path,  # Use the user-specific cache path
         requests_timeout=30,
     )
 
@@ -33,30 +52,30 @@ def login():
     if current_user.is_authenticated:
         return redirect(url_for("main.dashboard"))
 
-    # Generate a unique state for this login session
+    # Add random state for security
     import secrets
-    state = secrets.token_urlsafe(16)
-    session['spotify_auth_state'] = state
 
-    # Redirect to Spotify authorization with state parameter
-    sp_oauth = SpotifyOAuth(
-        client_id=current_app.config["SPOTIFY_CLIENT_ID"],
-        client_secret=current_app.config["SPOTIFY_CLIENT_SECRET"],
-        redirect_uri=current_app.config["SPOTIFY_REDIRECT_URI"],
-        scope="user-library-read user-top-read playlist-read-private user-read-recently-played user-read-email",
-        cache_path=None,  # Don't use file-based caching
-        show_dialog=True,  # Force user to select account
-    )
+    state = secrets.token_urlsafe(16)
+    session["spotify_auth_state"] = state
+
+    # Get a unique SpotifyOAuth instance for this login attempt
+    sp_oauth = get_spotify_oauth()  # Uses the session-based cache path
+
+    # Build authorization URL with additional parameters to force login
     auth_url = sp_oauth.get_authorize_url(state=state)
-    return redirect(auth_url)
+    auth_url += "&show_dialog=true"
+
+    # Clear any existing Spotify session cookies
+    response = redirect(auth_url)
+    return response
 
 
 @bp.route("/callback")
 @bp.route("/login/callback")
 def callback():
     # Verify state to prevent CSRF
-    state = request.args.get('state')
-    stored_state = session.get('spotify_auth_state')
+    state = request.args.get("state")
+    stored_state = session.get("spotify_auth_state")
     if state is None or state != stored_state:
         flash("Authentication error: State verification failed")
         return redirect(url_for("main.index"))
@@ -79,17 +98,10 @@ def callback():
         return redirect(url_for("main.index"))
 
     try:
-        # Exchange code for token
+        # Use the same cache path that was used for login
+        sp_oauth = get_spotify_oauth()  # Gets the session-based cache path
         current_app.logger.info(
             f"Exchanging code for token with redirect_uri: {current_app.config['SPOTIFY_REDIRECT_URI']}"
-        )
-        sp_oauth = SpotifyOAuth(
-            client_id=current_app.config["SPOTIFY_CLIENT_ID"],
-            client_secret=current_app.config["SPOTIFY_CLIENT_SECRET"],
-            redirect_uri=current_app.config["SPOTIFY_REDIRECT_URI"],
-            scope="user-library-read user-top-read playlist-read-private user-read-recently-played user-read-email",
-            cache_path=None,
-            show_dialog=True,
         )
 
         # Exchange code for token
@@ -101,20 +113,25 @@ def callback():
 
         # Get user info from Spotify
         spotify_user = sp.current_user()
+        spotify_id = spotify_user["id"]
+        current_app.logger.info(f"Authenticated Spotify user: {spotify_id}")
+        current_app.logger.info(f"Spotify user email: {spotify_user.get('email')}")
         current_app.logger.info(
-            f"Authenticated as Spotify user: {spotify_user.get('id')}"
+            f"Spotify user display name: {spotify_user.get('display_name')}"
         )
 
         # Check if user exists in database
-        user = User.query.filter_by(spotify_id=spotify_user["id"]).first()
+        user = User.query.filter_by(spotify_id=spotify_id).first()
 
-        if not user:
-            # Create new user if not exists
+        if user:
             current_app.logger.info(
-                f"Creating new user for Spotify ID: {spotify_user['id']}"
+                f"Found existing user with ID {user.id} for Spotify ID {spotify_id}"
             )
+        else:
+            current_app.logger.info(f"Creating new user for Spotify ID {spotify_id}")
+            # Create new user if not exists
             user = User(
-                spotify_id=spotify_user["id"],
+                spotify_id=spotify_id,
                 email=spotify_user.get("email"),
                 display_name=spotify_user.get("display_name"),
             )
@@ -124,8 +141,8 @@ def callback():
                 user.profile_image = spotify_user["images"][0].get("url")
 
             db.session.add(user)
-        else:
-            current_app.logger.info(f"User found for Spotify ID: {spotify_user['id']}")
+            # Commit immediately to get an ID assigned
+            db.session.commit()
 
         # Update user info
         user.set_spotify_tokens(
@@ -135,10 +152,40 @@ def callback():
         )
         user.last_login = datetime.utcnow()
 
-        # Ensure user has a database
-        user.create_user_db(current_app.config)
+        # Now that we have a user ID, create the user database
+        current_app.logger.info(f"Creating user DB for user ID: {user.id}")
+        user_db_path = user.create_user_db(current_app.config)
+        current_app.logger.info(f"User DB path: {user_db_path}")
+
+        # Once we have a user ID, update to a user-specific cache for future use
+        if user.id:
+            # Get a new OAuth with the user's ID-based cache
+            user_sp_oauth = get_spotify_oauth(user.id)
+
+            # Transfer the token to the user-specific cache
+            user_sp_oauth.cache_handler.save_token_to_cache(token_info)
+
+            # Clean up the temporary cache if we have one
+            if "spotify_cache_id" in session:
+                temp_cache = f".spotify_cache_temp_{session['spotify_cache_id']}"
+                try:
+                    import os
+
+                    if os.path.exists(temp_cache):
+                        os.remove(temp_cache)
+                        current_app.logger.info(
+                            f"Deleted temporary cache: {temp_cache}"
+                        )
+                except Exception as cache_error:
+                    current_app.logger.error(
+                        f"Error deleting temp cache: {str(cache_error)}"
+                    )
+                session.pop("spotify_cache_id")
 
         db.session.commit()
+
+        # Store the Spotify ID in the session for verification
+        session["spotify_user_id"] = spotify_id
 
         # Log in the user
         login_user(user)

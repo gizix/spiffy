@@ -43,10 +43,41 @@ class User(UserMixin, db.Model):
         return datetime.utcnow() > self.token_expires_at
 
     def create_user_db(self, app_config):
-        if not self.db_path:
-            user_db_dir = app_config["USER_DB_PATH"]
-            os.makedirs(user_db_dir, exist_ok=True)
-            self.db_path = os.path.join(user_db_dir, f"user_{self.id}.db")
+        if not self.id:
+            raise ValueError("User ID must be set before creating a user database")
+
+        user_db_dir = app_config["USER_DB_PATH"]
+        os.makedirs(user_db_dir, exist_ok=True)
+        self.db_path = os.path.join(user_db_dir, f"user_{self.id}.db")
+
+        # Log the database path
+        print(f"Creating database for user {self.id} at {self.db_path}")
+
+        # Create the database with a basic structure if it doesn't exist
+        import sqlite3
+
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Create a version table to track database schema
+        cursor.execute(
+            """
+        CREATE TABLE IF NOT EXISTS db_info (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+        """
+        )
+
+        # Set a version
+        cursor.execute(
+            "INSERT OR REPLACE INTO db_info (key, value) VALUES (?, ?)",
+            ("version", "1.0"),
+        )
+
+        conn.commit()
+        conn.close()
+
         return self.db_path
 
     def __repr__(self):

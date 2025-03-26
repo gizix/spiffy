@@ -257,7 +257,7 @@ def get_source_tracks_from_db(data_type):
                     "duration_ms": track_info.get("duration_ms", 0),
                     "album": track_info.get("album", {}).get("name", "Unknown"),
                     "explicit": is_explicit,  # Explicitly include this field
-                    "popularity": track_info.get("popularity", 0)
+                    "popularity": track_info.get("popularity", 0),
                 }
                 tracks.append(track)
 

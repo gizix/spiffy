@@ -450,7 +450,10 @@ def debug_playlist():
         return redirect(url_for("randomizer.index"))
 
     # Get playlist name
-    playlist_name = request.form.get("playlist_name") or f"Shuffled Playlist {random.randint(1000, 9999)}"
+    playlist_name = (
+        request.form.get("playlist_name")
+        or f"Shuffled Playlist {random.randint(1000, 9999)}"
+    )
     current_app.logger.info(f"Debug playlist name: {playlist_name}")
 
     # Extract rules from form
@@ -463,7 +466,9 @@ def debug_playlist():
     config = None
 
     if save_config and config_name:
-        current_app.logger.info(f"Debug mode: Configuration would be saved as '{config_name}'")
+        current_app.logger.info(
+            f"Debug mode: Configuration would be saved as '{config_name}'"
+        )
         # Don't actually save in debug mode
 
     try:
@@ -529,12 +534,14 @@ def debug_playlist():
             "source_tracks_count": len(tracks),
             "final_tracks_count": len(shuffled_tracks),
             "rules_applied": rules,
-            "playlist_summary": summary
+            "playlist_summary": summary,
         }
 
         # Generate an HTML output of the summary
         from flask import render_template_string
-        summary_html = render_template_string("""
+
+        summary_html = render_template_string(
+            """
             <div class="debug-summary">
                 <h4>Debug Summary</h4>
                 <p><strong>Operation Time:</strong> {{ debug_summary.operation_time|round(2) }} seconds</p>
@@ -563,7 +570,9 @@ def debug_playlist():
                 </ul>
                 {% endif %}
             </div>
-        """, debug_summary=debug_summary)
+        """,
+            debug_summary=debug_summary,
+        )
 
         current_app.logger.info("===== DEBUG MODE COMPLETE =====")
 
@@ -572,7 +581,7 @@ def debug_playlist():
             title="Randomizer Debug Result",
             debug_summary=debug_summary,
             summary_html=summary_html,
-            operation_time=operation_time
+            operation_time=operation_time,
         )
 
     except Exception as e:

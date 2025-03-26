@@ -15,8 +15,9 @@ This application uses the Spotify OAuth flow to authenticate users directly with
 
 ```
 spiffy/
-├── .cache
 ├── .python-version
+├── .spotify_cache_1
+├── .spotify_cache_2
 ├── README.md
 ├── config.py
 ├── generate_readme.py
@@ -87,7 +88,8 @@ spiffy/
 ├── instance/
 │   └── app.db
 │   ├── user_data/
-│   │   └── user_None.db
+│   │   ├── user_1.db
+│   │   └── user_2.db
 ├── logs/
 │   └── spotify_explorer.log
 ├── assets/
@@ -103,10 +105,6 @@ spiffy/
 4. **API Integration**: Uses the Spotipy library to interact with Spotify's API
 
 ## File Descriptions
-
-### .cache
-
-Text file: {"access_token": "BQCdCuBAbXWtGnE4UddZRCNUBqtayascH1wXu6_32Ffs53lEDyn2Hs1GaYgi2_-A_sjv4IxsfHfMR_aRSy...
 
 ### .env
 
@@ -138,6 +136,14 @@ __pycache__/
 3.12.1
 
 
+### .spotify_cache_1
+
+Text file: {"access_token": "BQC3YHCRl2-Gei48BSVBOwlExggpxsklGUX0ta97iz7jKcPtfnz5V9yFnlgaOzUD5pj1LoTY9y9zd_bl_H...
+
+### .spotify_cache_2
+
+Text file: {"access_token": "BQD0fidBq__qxWj5JH13w4v85IDOaEa_d6WHuJMhM4Vn2iaA7UIp3cMY1J447BKQIZ5Bb5HOB87RDkUc0t...
+
 ### README.md
 
 Markdown documentation file
@@ -152,7 +158,7 @@ Generate a summary for the given file.
 
 ### init_data.py
 
-Imports: app.models, app Defines functions: init_spotify_data_types
+Imports: app, app.models Defines functions: init_spotify_data_types
 
 ### poetry.lock
 
@@ -185,7 +191,7 @@ Imports: app, flask_migrate Defines functions: check_database
 
 ### tests/debug_users.py
 
-Imports: app.models, app, sys Defines functions: debug_users
+Imports: sys, app, app.models Defines functions: debug_users
 
 ### tests/test_basic.py
 
@@ -347,7 +353,11 @@ File with .js extension
 
 Binary file or encoding issues
 
-### instance/user_data/user_None.db
+### instance/user_data/user_1.db
+
+Binary file or encoding issues
+
+### instance/user_data/user_2.db
 
 Binary file or encoding issues
 

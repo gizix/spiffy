@@ -20,13 +20,32 @@ from app import db
 from app.models import User, SpotifyDataType, UserDataSync
 
 
-def get_spotify_oauth():
+def get_spotify_oauth(user_id=None):
+    """
+    Get a SpotifyOAuth instance with user-specific cache path
+    """
+    # Create a unique cache path if user_id is provided
+    if user_id:
+        cache_path = f".spotify_cache_{user_id}"
+    else:
+        # For unauthenticated users, use a temporary cache with session ID
+        import secrets
+
+        cache_id = session.get("spotify_cache_id")
+        if not cache_id:
+            cache_id = secrets.token_urlsafe(8)
+            session["spotify_cache_id"] = cache_id
+        cache_path = f".spotify_cache_temp_{cache_id}"
+
+    # Log the cache path being used
+    current_app.logger.info(f"Using Spotify cache path: {cache_path}")
+
     return SpotifyOAuth(
         client_id=current_app.config["SPOTIFY_CLIENT_ID"],
         client_secret=current_app.config["SPOTIFY_CLIENT_SECRET"],
         redirect_uri=current_app.config["SPOTIFY_REDIRECT_URI"],
         scope=current_app.config["SPOTIFY_API_SCOPES"],
-        cache_path=None,
+        cache_path=cache_path,  # Use the user-specific cache path
         requests_timeout=30,
     )
 
@@ -164,6 +183,10 @@ def sync_data(data_type):
         record_count = 0
         batch_size = 50
         max_items = 66_666
+
+        current_app.logger.info(
+            f"Using database at {current_user.db_path} for user {current_user.id}"
+        )
 
         # Create connection to user's SQLite database
         conn = sqlite3.connect(current_user.db_path)
