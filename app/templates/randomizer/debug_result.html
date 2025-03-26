@@ -1,0 +1,151 @@
+<!-- app/templates/randomizer/debug_result.html -->
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Randomizer Debug Result</h1>
+
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle-fill me-2"></i>
+        Debug mode completed in {{ operation_time|round(2) }} seconds without creating a playlist.
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Result Summary</h5>
+                </div>
+                <div class="card-body">
+                    {{ summary_html|safe }}
+                </div>
+                <div class="card-footer">
+                    <a href="{{ url_for('randomizer.index') }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Back to Randomizer
+                    </a>
+                    <button class="btn btn-primary" id="createFromDebug">
+                        <i class="bi bi-music-note-list me-1"></i>Create This Playlist
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Rule Processing Details</h5>
+                </div>
+                <div class="card-body">
+                    <h5>Source Tracks: {{ debug_summary.source_tracks_count }}</h5>
+                    <h5>Final Tracks: {{ debug_summary.final_tracks_count }}</h5>
+
+                    <h6 class="mt-4">Rule Effects</h6>
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Rule</th>
+                                    <th>Parameter</th>
+                                    <th>Before</th>
+                                    <th>After</th>
+                                    <th>Removed</th>
+                                    <th>% Removed</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for effect in debug_summary.rule_effects %}
+                                <tr>
+                                    <td>{{ effect.rule_type }}</td>
+                                    <td>{{ effect.parameter }}</td>
+                                    <td>{{ effect.tracks_before }}</td>
+                                    <td>{{ effect.tracks_after }}</td>
+                                    <td>{{ effect.tracks_removed }}</td>
+                                    <td>{{ effect.percent_removed }}%</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {% if debug_summary.ignored_tracks %}
+                    <h6 class="mt-4">Sample of Ignored Tracks</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Track</th>
+                                    <th>Artist</th>
+                                    <th>Duration</th>
+                                    <th>Popularity</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for track in debug_summary.ignored_tracks %}
+                                <tr>
+                                    <td>{{ track.name }}</td>
+                                    <td>{{ track.artist }}</td>
+                                    <td>{{ (track.duration_ms / 60000)|round(2) }} min</td>
+                                    <td>{{ track.popularity }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle the "Create This Playlist" button
+    document.getElementById('createFromDebug').addEventListener('click', function() {
+        // Create a form with the same parameters
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{{ url_for("randomizer.create_playlist") }}';
+
+        // Add all the parameters from the debug session
+        const params = {
+            'source_type': '{{ debug_summary.source_type }}',
+            'source_playlist_id': '{{ debug_summary.source_playlist_id }}',
+            'playlist_name': '{{ debug_summary.playlist_name }}'
+        };
+
+        // Add the rules
+        {% for rule in debug_summary.rules_applied %}
+        const ruleTypeInput{{ loop.index }} = document.createElement('input');
+        ruleTypeInput{{ loop.index }}.type = 'hidden';
+        ruleTypeInput{{ loop.index }}.name = 'rules[{{ loop.index0 }}][rule_type]';
+        ruleTypeInput{{ loop.index }}.value = '{{ rule.rule_type }}';
+        form.appendChild(ruleTypeInput{{ loop.index }});
+
+        const ruleParamInput{{ loop.index }} = document.createElement('input');
+        ruleParamInput{{ loop.index }}.type = 'hidden';
+        ruleParamInput{{ loop.index }}.name = 'rules[{{ loop.index0 }}][parameter]';
+        ruleParamInput{{ loop.index }}.value = '{{ rule.parameter }}';
+        form.appendChild(ruleParamInput{{ loop.index }});
+        {% endfor %}
+
+        // Add hidden fields for each parameter
+        Object.keys(params).forEach(key => {
+            if (params[key]) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = key;
+                input.value = params[key];
+                form.appendChild(input);
+            }
+        });
+
+        // Add to document and submit
+        document.body.appendChild(form);
+        form.submit();
+    });
+});
+</script>
+{% endblock %}

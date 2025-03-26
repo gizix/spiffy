@@ -47,6 +47,16 @@
                                     <i class="bi bi-gear-fill"></i> Configure Rules
                                 </button>
                             </div>
+                            <!-- Add this below the shuffle button in the form -->
+                            <div class="col-md-4 d-flex align-items-end">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" id="debugModeToggle" name="debug_mode">
+                                    <label class="form-check-label" for="debugModeToggle">Debug Mode</label>
+                                    <span class="ms-2" data-bs-toggle="tooltip" title="Test playlist creation without actually creating a playlist">
+                                        <i class="bi bi-question-circle"></i>
+                                    </span>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Collapsible Rules Section -->
@@ -478,7 +488,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!hasRules) {
             console.log('WARNING: No rules found in form submission!');
         }
+        // Check if debug mode is enabled
+        if (document.getElementById('debugModeToggle').checked) {
+            e.preventDefault();
 
+            // Change the form action to the debug endpoint
+            this.action = "{{ url_for('randomizer.debug_playlist') }}";
+            this.submit();
+        }
         // Continue with form submission
     });
 

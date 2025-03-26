@@ -427,3 +427,154 @@ def sync_playlists():
         deleted_count=deleted_count,
         total_count=total_count,
     )
+
+
+@randomizer.route("/debug_playlist", methods=["POST"])
+@login_required
+def debug_playlist():
+    # Start timing the operation
+    start_time = datetime.utcnow()
+
+    # Log the start of debug mode
+    current_app.logger.info("===== STARTING DEBUG MODE =====")
+
+    # Get source information
+    source_type = request.form.get("source_type", "playlist")
+    source_playlist_id = request.form.get("source_playlist_id")
+    current_app.logger.info(f"Source type: {source_type}")
+
+    # Validate source selection
+    if source_type == "playlist" and not source_playlist_id:
+        flash("Please select a source playlist")
+        return redirect(url_for("randomizer.index"))
+
+    # Get playlist name
+    playlist_name = request.form.get("playlist_name") or f"Shuffled Playlist {random.randint(1000, 9999)}"
+    current_app.logger.info(f"Debug playlist name: {playlist_name}")
+
+    # Extract rules from form
+    rules = extract_rules_from_form(request)
+    current_app.logger.info(f"Processing {len(rules)} rules in debug mode")
+
+    # Save configuration if requested
+    save_config = request.form.get("save_config") == "on"
+    config_name = request.form.get("config_name", "")
+    config = None
+
+    if save_config and config_name:
+        current_app.logger.info(f"Debug mode: Configuration would be saved as '{config_name}'")
+        # Don't actually save in debug mode
+
+    try:
+        # Get tracks from source
+        current_app.logger.info("Fetching source tracks...")
+        tracks, error_message = get_tracks_from_source(
+            source_type, source_playlist_id, current_user
+        )
+
+        if error_message:
+            flash(error_message)
+            return redirect(url_for("randomizer.index"))
+
+        current_app.logger.info(f"Successfully retrieved {len(tracks)} source tracks")
+
+        # Categorize rules for processing
+        if not rules and config:
+            # Get rules from config if no rules provided directly
+            config = RandomizerConfig.query.get(config.id)
+            config_rules = [
+                {"rule_type": rule.rule_type, "parameter": rule.parameter}
+                for rule in config.rules
+            ]
+            current_app.logger.info(
+                f"Using {len(config_rules)} rules from config '{config.name}'"
+            )
+            rules = config_rules
+
+        # Categorize rules by type and order
+        rule_categories = categorize_rules(rules)
+
+        # Log rule categories
+        current_app.logger.info("Rule categorization:")
+        for category, rules_dict in rule_categories.items():
+            if isinstance(rules_dict, dict):
+                current_app.logger.info(f"  - {category}: {rules_dict}")
+            else:
+                current_app.logger.info(f"  - {category}: {rules_dict}")
+
+        # Process tracks with rules
+        current_app.logger.info(f"Beginning rule processing on {len(tracks)} tracks")
+        filtered_tracks = process_tracks_with_rules(
+            tracks, rule_categories, max_tracks=MAX_PLAYLIST_TRACKS
+        )
+
+        # Final validation and limiting
+        shuffled_tracks = validate_final_playlist(
+            filtered_tracks, rule_categories, MAX_PLAYLIST_TRACKS
+        )
+
+        # Log a summary of the final playlist
+        summary = log_playlist_summary(shuffled_tracks, playlist_name, config)
+
+        # Calculate total operation time
+        end_time = datetime.utcnow()
+        operation_time = (end_time - start_time).total_seconds()
+
+        # Create a debug summary to display to the user
+        track_uris = [track["uri"] for track in shuffled_tracks]
+        debug_summary = {
+            "operation_time": operation_time,
+            "source_type": source_type,
+            "source_tracks_count": len(tracks),
+            "final_tracks_count": len(shuffled_tracks),
+            "rules_applied": rules,
+            "playlist_summary": summary
+        }
+
+        # Generate an HTML output of the summary
+        from flask import render_template_string
+        summary_html = render_template_string("""
+            <div class="debug-summary">
+                <h4>Debug Summary</h4>
+                <p><strong>Operation Time:</strong> {{ debug_summary.operation_time|round(2) }} seconds</p>
+                <p><strong>Source:</strong> {{ debug_summary.source_type }}</p>
+                <p><strong>Source Tracks:</strong> {{ debug_summary.source_tracks_count }}</p>
+                <p><strong>Final Tracks:</strong> {{ debug_summary.final_tracks_count }}</p>
+
+                <h5>Rules Applied</h5>
+                <ul>
+                {% for rule in debug_summary.rules_applied %}
+                    <li><strong>{{ rule.rule_type }}:</strong> {{ rule.parameter }}</li>
+                {% endfor %}
+                </ul>
+
+                <h5>Playlist Summary</h5>
+                <p><strong>Tracks:</strong> {{ debug_summary.playlist_summary.track_count }}</p>
+                <p><strong>Duration:</strong> {{ debug_summary.playlist_summary.duration_min|round(2) }} minutes</p>
+                <p><strong>Artists:</strong> {{ debug_summary.playlist_summary.artist_count }}</p>
+
+                {% if debug_summary.playlist_summary.top_artists %}
+                <h6>Top Artists</h6>
+                <ul>
+                {% for artist in debug_summary.playlist_summary.top_artists %}
+                    <li>{{ artist.name }}: {{ artist.count }} tracks</li>
+                {% endfor %}
+                </ul>
+                {% endif %}
+            </div>
+        """, debug_summary=debug_summary)
+
+        current_app.logger.info("===== DEBUG MODE COMPLETE =====")
+
+        return render_template(
+            "randomizer/debug_result.html",
+            title="Randomizer Debug Result",
+            debug_summary=debug_summary,
+            summary_html=summary_html,
+            operation_time=operation_time
+        )
+
+    except Exception as e:
+        current_app.logger.error(f"Error in debug mode: {str(e)}", exc_info=True)
+        flash(f"Error in debug mode: {str(e)}")
+        return redirect(url_for("randomizer.index"))

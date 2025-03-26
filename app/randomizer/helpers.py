@@ -205,7 +205,7 @@ def get_source_tracks_from_playlist(spotify, playlist_id):
 
 
 def get_source_tracks_from_db(data_type):
-    """Get tracks from the user's local database"""
+    """Get tracks from the user's local database with improved explicit flag handling"""
     try:
         conn = sqlite3.connect(current_user.db_path)
         conn.row_factory = sqlite3.Row
@@ -227,6 +227,7 @@ def get_source_tracks_from_db(data_type):
 
         # Extract track information from JSON data
         tracks = []
+        explicit_tracks_count = 0
         for item in db_items:
             try:
                 # Parse the JSON data string
@@ -240,6 +241,13 @@ def get_source_tracks_from_db(data_type):
                 if "uri" not in track_info:
                     continue
 
+                # Check if the track has an explicit flag and count explicit tracks
+                is_explicit = False
+                if "explicit" in track_info:
+                    is_explicit = bool(track_info["explicit"])
+                    if is_explicit:
+                        explicit_tracks_count += 1
+
                 # Create a standardized track object
                 track = {
                     "uri": track_info.get("uri"),
@@ -248,6 +256,8 @@ def get_source_tracks_from_db(data_type):
                     "artist_id": track_info.get("artists", [{}])[0].get("id", ""),
                     "duration_ms": track_info.get("duration_ms", 0),
                     "album": track_info.get("album", {}).get("name", "Unknown"),
+                    "explicit": is_explicit,  # Explicitly include this field
+                    "popularity": track_info.get("popularity", 0)
                 }
                 tracks.append(track)
 
@@ -257,7 +267,7 @@ def get_source_tracks_from_db(data_type):
 
         conn.close()
         current_app.logger.info(
-            f"Successfully loaded {len(tracks)} tracks from database"
+            f"Successfully loaded {len(tracks)} tracks from database with {explicit_tracks_count} explicit tracks"
         )
         return tracks
 

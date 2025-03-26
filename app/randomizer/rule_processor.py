@@ -1,5 +1,6 @@
 # app/randomizer/rule_processor.py
 import random
+import json
 from flask import current_app
 
 
@@ -599,7 +600,7 @@ def apply_popularity_filter(tracks, rules):
 
 
 def apply_explicit_filter(tracks, rules):
-    """Filter tracks based on explicit flag"""
+    """Filter tracks based on explicit flag with improved error handling"""
     explicit_filter = rules.get("explicit_filter", "")
 
     if not explicit_filter or explicit_filter.lower() == "any":
@@ -615,11 +616,70 @@ def apply_explicit_filter(tracks, rules):
         f"Applying explicit filter: {'including only explicit' if include_explicit else 'excluding explicit'}"
     )
 
+    # More detailed diagnostic with track inspection
+    if not hasattr(apply_explicit_filter, 'has_diagnosed_deeply'):
+        apply_explicit_filter.has_diagnosed_deeply = True
+        track_sample = tracks[0] if tracks else {}
+        current_app.logger.info(f"Full track data structure example:")
+        current_app.logger.info(f"{json.dumps(track_sample, indent=2)}")
+        # Look for any field containing 'explicit'
+        for key, value in flatten_dict(track_sample).items():
+            if 'explicit' in key.lower():
+                current_app.logger.info(f"Found possible explicit field: {key} = {value}")
+
     filtered_tracks = []
     excluded_count = 0
+    missing_explicit_info = 0
+    explicit_tracks_found = 0
 
     for track in tracks:
-        is_explicit = track.get("explicit", False)
+        # Check different possible locations for explicit info
+        is_explicit = None
+
+        # Try direct field
+        if "explicit" in track:
+            is_explicit = track["explicit"]
+
+        # Try in external_ids
+        elif "external_ids" in track and isinstance(track["external_ids"], dict):
+            ext_ids = track["external_ids"]
+            if "isrc" in ext_ids and "explicit" in ext_ids:
+                is_explicit = ext_ids["explicit"]
+
+        # Try in album
+        elif "album" in track and isinstance(track["album"], dict):
+            if "explicit" in track["album"]:
+                is_explicit = track["album"]["explicit"]
+
+        # Try in the raw data if available
+        elif "data" in track and isinstance(track["data"], str):
+            try:
+                data = json.loads(track["data"])
+                if "explicit" in data:
+                    is_explicit = data["explicit"]
+            except:
+                pass
+
+        # If still missing, look for it as a field called "is_explicit"
+        elif "is_explicit" in track:
+            is_explicit = track["is_explicit"]
+
+        # Still not found - check track name for explicit markers as last resort
+        if is_explicit is None:
+            track_name = track.get("name", "").lower()
+            if " (explicit)" in track_name or "[explicit]" in track_name:
+                is_explicit = True
+
+        # Count explicit tracks we find for logging
+        if is_explicit is True:
+            explicit_tracks_found += 1
+
+        # If still missing, default conservatively based on filter type
+        if is_explicit is None:
+            missing_explicit_info += 1
+            # For explicit_only, we skip tracks with unknown status (assume clean)
+            # For clean_only, we include tracks with unknown status (assume clean)
+            is_explicit = False
 
         if (include_explicit and is_explicit) or (exclude_explicit and not is_explicit):
             filtered_tracks.append(track)
@@ -627,7 +687,49 @@ def apply_explicit_filter(tracks, rules):
             excluded_count += 1
 
     current_app.logger.info(f"Excluded {excluded_count} tracks due to explicit filter")
+    current_app.logger.info(f"Tracks with missing explicit info: {missing_explicit_info}")
+    current_app.logger.info(f"Explicit tracks found: {explicit_tracks_found}")
+
+    # Fallback logic for explicit_only filter when we can't find any explicit tracks
+    if include_explicit and explicit_tracks_found == 0 and len(tracks) > 0:
+        current_app.logger.warning(f"No explicit tracks found in the dataset - this suggests a data problem")
+
+        # For explicit_only, look for tracks with explicit terms in the title
+        profanity_filtered_tracks = []
+        profanity_terms = ["fuck", "shit", "bitch", "ass", "damn", "hell", "dick"]
+
+        for track in tracks:
+            name = track.get("name", "").lower()
+            if any(term in name for term in profanity_terms):
+                profanity_filtered_tracks.append(track)
+
+        current_app.logger.info(f"Found {len(profanity_filtered_tracks)} tracks with potentially explicit titles")
+
+        if len(profanity_filtered_tracks) > 0:
+            return profanity_filtered_tracks[:min(100, len(profanity_filtered_tracks))]
+
+        # If that still yields nothing, return random tracks but note it's problematic
+        current_app.logger.warning(f"Falling back to random tracks since no explicit tracks could be found")
+        random_sample = random.sample(tracks, min(100, len(tracks)))
+        return random_sample
+
+    # If we filtered all tracks with a clean_only filter, that's not necessarily a problem
+    if len(filtered_tracks) == 0 and exclude_explicit and explicit_tracks_found > 0:
+        current_app.logger.info(f"All tracks were filtered out because all tracks appear to be explicit")
+
     return filtered_tracks
+
+
+# Helper function to flatten nested dictionaries for inspection
+def flatten_dict(d, parent_key='', sep='.'):
+    items = []
+    for k, v in d.items() if isinstance(d, dict) else []:
+        new_key = f"{parent_key}{sep}{k}" if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten_dict(v, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
 
 
 def apply_saved_date_filter(tracks, rules):
@@ -739,3 +841,98 @@ def take_random_tracks(tracks, count):
     tracks_copy = tracks.copy()
     random.shuffle(tracks_copy)
     return tracks_copy[: min(count, len(tracks_copy))]
+
+
+def generate_rule_debug_report(original_tracks, filtered_tracks, rule_categories):
+    """Generate a detailed report of how each rule affected the track selection"""
+    report = {
+        "original_count": len(original_tracks),
+        "final_count": len(filtered_tracks),
+        "rule_effects": [],
+        "ignored_tracks": [],
+        "artist_distribution": {}
+    }
+
+    # Make a copy of tracks to work with
+    remaining_tracks = original_tracks.copy()
+
+    # Process each rule type and track its effect
+    for rule_type, rule_param in rule_categories["all_rules"].items():
+        tracks_before = len(remaining_tracks)
+
+        # Apply this specific rule
+        if rule_type == "artist_limit":
+            remaining_tracks = apply_artist_limit(remaining_tracks, {rule_type: rule_param})
+        elif rule_type in ["min_duration", "max_duration"]:
+            remaining_tracks = apply_duration_rules(remaining_tracks, {rule_type: rule_param})
+        elif rule_type == "explicit_filter":
+            remaining_tracks = apply_explicit_filter(remaining_tracks, {rule_type: rule_param})
+        elif rule_type in ["min_year", "max_year"]:
+            remaining_tracks = apply_release_year_filter(remaining_tracks, {rule_type: rule_param})
+        elif rule_type in ["min_popularity", "max_popularity"]:
+            remaining_tracks = apply_popularity_filter(remaining_tracks, {rule_type: rule_param})
+        elif rule_type == "saved_within":
+            remaining_tracks = apply_saved_date_filter(remaining_tracks, {rule_type: rule_param})
+
+        tracks_after = len(remaining_tracks)
+
+        # Record the effect
+        report["rule_effects"].append({
+            "rule_type": rule_type,
+            "parameter": rule_param,
+            "tracks_before": tracks_before,
+            "tracks_after": tracks_after,
+            "tracks_removed": tracks_before - tracks_after,
+            "percent_removed": round((tracks_before - tracks_after) / tracks_before * 100,
+                                     2) if tracks_before > 0 else 0
+        })
+
+    # Get tracks that were in original but not in final
+    final_uris = {track["uri"] for track in filtered_tracks}
+    ignored_tracks = [t for t in original_tracks if t["uri"] not in final_uris]
+
+    # Sample some ignored tracks for the report
+    sample_size = min(10, len(ignored_tracks))
+    if sample_size > 0:
+        for track in random.sample(ignored_tracks, sample_size):
+            report["ignored_tracks"].append({
+                "name": track.get("name", "Unknown"),
+                "artist": track.get("artist", "Unknown"),
+                "duration_ms": track.get("duration_ms", 0),
+                "popularity": track.get("popularity", 0)
+            })
+
+    # Calculate artist distribution in final tracks
+    for track in filtered_tracks:
+        artist = track.get("artist", "Unknown")
+        if artist in report["artist_distribution"]:
+            report["artist_distribution"][artist] += 1
+        else:
+            report["artist_distribution"][artist] = 1
+
+    return report
+
+
+def diagnose_explicit_content(tracks, sample_size=5):
+    """Diagnostic function to check explicit field in tracks"""
+    current_app.logger.info(f"DIAGNOSING EXPLICIT CONTENT ISSUE")
+
+    # Count how many tracks have the explicit field
+    tracks_with_explicit = sum(1 for track in tracks if "explicit" in track)
+    current_app.logger.info(
+        f"Tracks with explicit field: {tracks_with_explicit}/{len(tracks)} ({tracks_with_explicit / len(tracks) * 100:.2f}%)")
+
+    # Sample some tracks to see their structure
+    sample = tracks[:sample_size]
+    for i, track in enumerate(sample):
+        current_app.logger.info(f"Sample track {i + 1}:")
+        current_app.logger.info(f"  - Track name: {track.get('name', 'Unknown')}")
+        current_app.logger.info(f"  - Artist: {track.get('artist', 'Unknown')}")
+        current_app.logger.info(f"  - Has explicit field: {'explicit' in track}")
+        current_app.logger.info(f"  - Explicit value: {track.get('explicit', 'MISSING')}")
+
+        # Look for alternative fields that might contain explicit info
+        for key in track:
+            if 'explicit' in key.lower():
+                current_app.logger.info(f"  - Related field: {key} = {track[key]}")
+

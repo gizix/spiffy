@@ -33,21 +33,28 @@ spiffy/
 ├── app/
 │   ├── __init__.py
 │   └── models.py
+│   ├── admin/
+│   │   ├── __init__.py
+│   │   └── routes.py
 │   ├── spotify/
 │   │   ├── __init__.py
 │   │   ├── routes.py
 │   │   └── utils.py
 │   ├── templates/
 │   │   └── base.html
+│   │   ├── admin/
+│   │   │   └── beta_signups.html
 │   │   ├── spotify/
 │   │   │   ├── visualize_generic.html
 │   │   │   ├── visualize_saved_tracks.html
 │   │   │   └── visualize_top_tracks.html
 │   │   ├── randomizer/
+│   │   │   ├── debug_result.html
 │   │   │   ├── edit_config.html
 │   │   │   ├── index.html
 │   │   │   └── sync_playlists.html
 │   │   ├── auth/
+│   │   │   ├── beta_signup.html
 │   │   │   ├── login.html
 │   │   │   ├── profile.html
 │   │   │   └── register.html
@@ -99,7 +106,7 @@ spiffy/
 
 ### .cache
 
-Text file: {"access_token": "BQDpLF2Q-JIhzsF-ef-kHsg7P3y-XxBskBzGkCZ8eKQFin1fbHU4Hn22DZnIR89fIUSXy1A4gs22yU3dMv...
+Text file: {"access_token": "BQCdCuBAbXWtGnE4UddZRCNUBqtayascH1wXu6_32Ffs53lEDyn2Hs1GaYgi2_-A_sjv4IxsfHfMR_aRSy...
 
 ### .env
 
@@ -174,11 +181,11 @@ Package initialization file
 
 ### tests/check_db.py
 
-Imports: flask_migrate, app Defines functions: check_database
+Imports: app, flask_migrate Defines functions: check_database
 
 ### tests/debug_users.py
 
-Imports: sys, app, app.models Defines functions: debug_users
+Imports: app, app.models, sys Defines functions: debug_users
 
 ### tests/test_basic.py
 
@@ -190,7 +197,15 @@ Package initialization file
 
 ### app/models.py
 
-Database models defining: User, SpotifyDataType, UserDataSync, RandomizerConfig, RandomizerRule, PlaylistCreationHistory
+Database models defining: User, SpotifyDataType, UserDataSync, RandomizerConfig, RandomizerRule, PlaylistCreationHistory, BetaSignup
+
+### app/admin/__init__.py
+
+Package initialization file
+
+### app/admin/routes.py
+
+Route handlers for: /beta-signups, /export-signups/<format>
 
 ### app/spotify/__init__.py
 
@@ -208,6 +223,10 @@ Get an authenticated Spotify client for a user
 
 Base template providing layout structure for the application
 
+### app/templates/admin/beta_signups.html
+
+ template extending base.html
+
 ### app/templates/spotify/visualize_generic.html
 
 Spotify template extending base.html
@@ -220,6 +239,10 @@ Spotify template extending base.html
 
 Spotify template extending base.html
 
+### app/templates/randomizer/debug_result.html
+
+ template extending base.html
+
 ### app/templates/randomizer/edit_config.html
 
  template extending base.html
@@ -231,6 +254,10 @@ Spotify template extending base.html
 ### app/templates/randomizer/sync_playlists.html
 
  template extending base.html
+
+### app/templates/auth/beta_signup.html
+
+Authentication template extending base.html
 
 ### app/templates/auth/login.html
 
@@ -270,7 +297,7 @@ Extract rules from form data, supporting multiple formats
 
 ### app/randomizer/routes.py
 
-Route handlers for: /randomizer, /create_playlist, /get_config_rules/<int:id>, /edit_config/<int:id>, /delete_config/<int:id>, /sync_playlists
+Route handlers for: /randomizer, /create_playlist, /get_config_rules/<int:id>, /edit_config/<int:id>, /delete_config/<int:id>, /sync_playlists, /debug_playlist
 
 ### app/randomizer/rule_processor.py
 
@@ -282,11 +309,11 @@ Package initialization file
 
 ### app/auth/forms.py
 
-Flask forms: LoginForm, RegistrationForm
+Flask forms: LoginForm, RegistrationForm, BetaSignupForm
 
 ### app/auth/routes.py
 
-Route handlers for: /login, /callback, /login/callback, /logout, /profile
+Route handlers for: /login, /callback, /login/callback, /logout, /profile, /beta-signup
 
 ### app/main/__init__.py
 
