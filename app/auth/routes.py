@@ -21,18 +21,23 @@ def get_spotify_oauth(user_id=None):
     """
     Get a SpotifyOAuth instance with user-specific cache path
     """
+    import os
+
+    # Create cache directory if it doesn't exist
+    cache_dir = os.path.join(current_app.root_path, "spotify_caches")
+    os.makedirs(cache_dir, exist_ok=True)
+
     # Create a unique cache path if user_id is provided
     if user_id:
-        cache_path = f".spotify_cache_{user_id}"
+        cache_path = os.path.join(cache_dir, f"user_{user_id}_cache")
     else:
         # For unauthenticated users, use a temporary cache with session ID
         import secrets
-
-        cache_id = session.get("spotify_cache_id")
+        cache_id = session.get('spotify_cache_id')
         if not cache_id:
             cache_id = secrets.token_urlsafe(8)
-            session["spotify_cache_id"] = cache_id
-        cache_path = f".spotify_cache_temp_{cache_id}"
+            session['spotify_cache_id'] = cache_id
+        cache_path = os.path.join(cache_dir, f"temp_{cache_id}_cache")
 
     # Log the cache path being used
     current_app.logger.info(f"Using Spotify cache path: {cache_path}")
@@ -44,6 +49,7 @@ def get_spotify_oauth(user_id=None):
         scope=current_app.config["SPOTIFY_API_SCOPES"],
         cache_path=cache_path,  # Use the user-specific cache path
         requests_timeout=30,
+        show_dialog=True,  # Always show dialog to force account selection
     )
 
 
