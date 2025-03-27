@@ -7,6 +7,13 @@ import os
 
 app = create_app()
 
+
+@app.before_request
+def redirect_domains():
+    if request.host == "spiffy.tools" or "idabble.pythonanywhere.com" in request.host:
+        return redirect("https://www.spiffy.tools" + request.path, code=301)
+
+
 # Configure logging
 if not app.debug:
     # Create logs directory if it doesn't exist
