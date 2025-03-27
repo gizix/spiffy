@@ -2,6 +2,7 @@
 import random
 import json
 from flask import current_app
+from app.randomizer.helpers import refill_tracks, refill_with_artist_limits
 
 
 def categorize_rules(rules):
@@ -783,66 +784,6 @@ def apply_saved_date_filter(tracks, rules):
     except (ValueError, TypeError) as e:
         current_app.logger.error(f"Error applying saved date filter: {str(e)}")
         return tracks
-
-
-# Helper functions from helpers.py needed for rule processing
-def refill_tracks(original_tracks, filtered_tracks, max_tracks):
-    """Refill tracks when filters have been too aggressive"""
-    if not filtered_tracks and original_tracks:
-        # If we've filtered out all tracks, take some random ones from the original set
-        current_app.logger.warning(
-            "Filters removed all tracks, selecting random tracks instead"
-        )
-        return take_random_tracks(original_tracks, max_tracks)
-    elif len(filtered_tracks) < max_tracks:
-        # If we have some tracks but not enough, add more random ones
-        needed = max_tracks - len(filtered_tracks)
-        current_app.logger.info(
-            f"Adding {needed} random tracks to meet minimum requirements"
-        )
-
-        # Get pool of tracks not already in filtered_tracks
-        filtered_uris = {track["uri"] for track in filtered_tracks}
-        available_tracks = [t for t in original_tracks if t["uri"] not in filtered_uris]
-
-        if available_tracks:
-            additional_tracks = take_random_tracks(available_tracks, needed)
-            filtered_tracks.extend(additional_tracks)
-
-    return filtered_tracks
-
-
-def refill_with_artist_limits(
-    original_tracks, filtered_tracks, artist_rules, max_tracks
-):
-    """Refill tracks while respecting artist limits"""
-    if len(filtered_tracks) >= max_tracks:
-        return filtered_tracks[:max_tracks]
-
-    artist_limit = int(artist_rules.get("artist_limit", 1))
-
-    # Track current artist counts
-    artist_counts = {}
-    for track in filtered_tracks:
-        artist_id = track.get("artist_id", "")
-        artist_counts[artist_id] = artist_counts.get(artist_id, 0) + 1
-
-    # Get tracks we don't already have
-    filtered_uris = {track["uri"] for track in filtered_tracks}
-    available_tracks = [t for t in original_tracks if t["uri"] not in filtered_uris]
-    random.shuffle(available_tracks)
-
-    # Add tracks that don't violate artist limits
-    for track in available_tracks:
-        artist_id = track.get("artist_id", "")
-        if artist_counts.get(artist_id, 0) < artist_limit:
-            filtered_tracks.append(track)
-            artist_counts[artist_id] = artist_counts.get(artist_id, 0) + 1
-
-            if len(filtered_tracks) >= max_tracks:
-                break
-
-    return filtered_tracks
 
 
 def take_random_tracks(tracks, count):

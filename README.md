@@ -15,6 +15,7 @@ This application uses the Spotify OAuth flow to authenticate users directly with
 
 ```
 spiffy/
+├── .cache
 ├── .python-version
 ├── .spotify_cache_1
 ├── .spotify_cache_2
@@ -34,8 +35,18 @@ spiffy/
 ├── app/
 │   ├── __init__.py
 │   └── models.py
+│   ├── spotify_caches/
+│   │   ├── temp_8OVqDZGogUQ_cache
+│   │   ├── temp_Z0GmY20tjKY_cache
+│   │   ├── temp_c-BHH9sP-Eo_cache
+│   │   ├── temp_tQvXOVDil1E_cache
+│   │   ├── temp_xhKNB7Kgh7c_cache
+│   │   ├── user_1_cache
+│   │   └── user_2_cache
 │   ├── admin/
 │   │   ├── __init__.py
+│   │   ├── metrics_decorator.py
+│   │   ├── metrics_routes.py
 │   │   └── routes.py
 │   ├── spotify/
 │   │   ├── __init__.py
@@ -44,7 +55,8 @@ spiffy/
 │   ├── templates/
 │   │   └── base.html
 │   │   ├── admin/
-│   │   │   └── beta_signups.html
+│   │   │   ├── beta_signups.html
+│   │   │   └── metrics_dashboard.html
 │   │   ├── spotify/
 │   │   │   ├── visualize_generic.html
 │   │   │   ├── visualize_saved_tracks.html
@@ -84,9 +96,11 @@ spiffy/
 │   │   │   └── spiffy-logo.png
 │   │   ├── js/
 │   │   │   ├── loading-helper.js
-│   │   │   └── saved_tracks.js
+│   │   │   ├── saved_tracks.js
+│   │   │   └── theme-manager.js
 ├── instance/
-│   └── app.db
+│   ├── app.db
+│   └── metrics.json
 │   ├── user_data/
 │   │   ├── user_1.db
 │   │   └── user_2.db
@@ -105,6 +119,10 @@ spiffy/
 4. **API Integration**: Uses the Spotipy library to interact with Spotify's API
 
 ## File Descriptions
+
+### .cache
+
+Text file: {"access_token": "BQCA7q5G96ba0NO1qZ2JZCTjgcmRwTN7zNCBfGRgbwQpleVYHpmESUWrwlq_jupB5mJxqlVMQQEspTzMNa...
 
 ### .env
 
@@ -205,9 +223,45 @@ Package initialization file
 
 Database models defining: User, SpotifyDataType, UserDataSync, RandomizerConfig, RandomizerRule, PlaylistCreationHistory, BetaSignup
 
+### app/spotify_caches/temp_8OVqDZGogUQ_cache
+
+Text file: {"access_token": "BQD95-qq4KmbBBrVXdn4ZfHtJKYmlc0aLXgxJHm7AoKJBRdda-SbvmjwxCE-97XwfQ8A-L09tOT8GceaAq...
+
+### app/spotify_caches/temp_Z0GmY20tjKY_cache
+
+Text file: {"access_token": "BQAy5FCXKTiecFWUnRrczvwnZqlxVmHh8HS5-f7D--seRSLHKzY9QaG3yc5bt1zRUh-g68AfMWJ3YHkG_w...
+
+### app/spotify_caches/temp_c-BHH9sP-Eo_cache
+
+Text file: {"access_token": "BQCkThB2HP_cptM6qWWo1sw0fmsLsSTRlJPLRfhtpbVW30EQcjZvSM9T8EUZ2QO9rzKYNxEs5lar2KbFhh...
+
+### app/spotify_caches/temp_tQvXOVDil1E_cache
+
+Text file: {"access_token": "BQDKrCg3mgA8Sn3PZd9NbmcH-C39ULqfq6DpHZySnXixKb8jY_m5AJ4u-jnNwK1tnJZq-xM-GczTMyL4WM...
+
+### app/spotify_caches/temp_xhKNB7Kgh7c_cache
+
+Text file: {"access_token": "BQCKe93HGdzTYHttMT5A4KZ2xQPBG7daWYX_1c0sQ5hDf9isA5GkpLK_boSgYxnnem4QuhexaCKleTsQga...
+
+### app/spotify_caches/user_1_cache
+
+Text file: {"access_token": "BQDKrCg3mgA8Sn3PZd9NbmcH-C39ULqfq6DpHZySnXixKb8jY_m5AJ4u-jnNwK1tnJZq-xM-GczTMyL4WM...
+
+### app/spotify_caches/user_2_cache
+
+Text file: {"access_token": "BQAy5FCXKTiecFWUnRrczvwnZqlxVmHh8HS5-f7D--seRSLHKzY9QaG3yc5bt1zRUh-g68AfMWJ3YHkG_w...
+
 ### app/admin/__init__.py
 
 Package initialization file
+
+### app/admin/metrics_decorator.py
+
+Imports 8 modules Defines classes: FunctionMetrics Defines 11 functions
+
+### app/admin/metrics_routes.py
+
+Route handlers for: /metrics, /metrics/data, /metrics/reset, /metrics/reset/<func_name>
 
 ### app/admin/routes.py
 
@@ -232,6 +286,10 @@ Base template providing layout structure for the application
 ### app/templates/admin/beta_signups.html
 
  template extending base.html
+
+### app/templates/admin/metrics_dashboard.html
+
+ dashboard template extending base.html
 
 ### app/templates/spotify/visualize_generic.html
 
@@ -335,7 +393,7 @@ Binary file or encoding issues
 
 ### app/static/css/style.css
 
-CSS file with 14 style definitions
+CSS file with 24 style definitions
 
 ### app/static/images/spiffy-logo.png
 
@@ -349,9 +407,17 @@ File with .js extension
 
 File with .js extension
 
+### app/static/js/theme-manager.js
+
+File with .js extension
+
 ### instance/app.db
 
 Binary file or encoding issues
+
+### instance/metrics.json
+
+File with .json extension
 
 ### instance/user_data/user_1.db
 
@@ -397,4 +463,4 @@ File with .log extension
 
 This application was created using Flask, Spotipy, and other open-source libraries.
 
-Generated on: 2025-03-26
+Generated on: 2025-03-27

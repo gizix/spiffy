@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Function Metrics Dashboard{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>Function Metrics Dashboard</h1>
+    
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Performance Overview</h5>
+                    <button id="reset-all" class="btn btn-sm btn-danger">Reset All</button>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3 id="total-calls">{{ metrics.values()|map(attribute='calls')|sum }}</h3>
+                                    <p class="mb-0">Total Function Calls</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3 id="total-errors">{{ metrics.values()|map(attribute='errors')|sum }}</h3>
+                                    <p class="mb-0">Total Errors</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3 id="unique-functions">{{ metrics|length }}</h3>
+                                    <p class="mb-0">Tracked Functions</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col">
+            <div class="card">
+                <div class="card-header">
+                    <h5>Function Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Function</th>
+                                    <th>Calls</th>
+                                    <th>Errors</th>
+                                    <th>Avg. Time (ms)</th>
+                                    <th>Last Called</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for func_name, data in metrics.items() %}
+                                <tr>
+                                    <td>{{ func_name }}</td>
+                                    <td>{{ data.calls }}</td>
+                                    <td>{{ data.errors }}</td>
+                                    <td>{{ ((data.total_time / data.calls) * 1000)|round(2) if data.calls > 0 else 0 }}</td>
+                                    <td>{{ data.last_called|default('Never') }}</td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info view-details" data-func="{{ func_name }}">Details</button>
+                                        <button class="btn btn-sm btn-danger reset-func" data-func="{{ func_name }}">Reset</button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Details Modal -->
+    <div class="modal fade" id="details-modal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Function Details</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="func-details-container">
+                        <h6>Loading...</h6>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle view details button
+    document.querySelectorAll('.view-details').forEach(button => {
+        button.addEventListener('click', function() {
+            const funcName = this.getAttribute('data-func');
+            showFunctionDetails(funcName);
+        });
+    });
+
+    // Handle reset function button
+    document.querySelectorAll('.reset-func').forEach(button => {
+        button.addEventListener('click', function() {
+            const funcName = this.getAttribute('data-func');
+            resetFunction(funcName);
+        });
+    });
+
+    // Handle reset all button
+    document.getElementById('reset-all').addEventListener('click', function() {
+        if (confirm('Are you sure you want to reset all metrics?')) {
+            resetAllMetrics();
+        }
+    });
+});
+
+function showFunctionDetails(funcName) {
+    fetch('/admin/metrics/data')
+        .then(response => response.json())
+        .then(data => {
+            const funcData = data[funcName];
+            if (funcData) {
+                let detailsHtml = `<h5>${funcName}</h5>`;
+                
+                // Basic stats
+                detailsHtml += `
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h4>${funcData.calls}</h4>
+                                <p>Total Calls</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h4>${funcData.errors}</h4>
+                                <p>Errors</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card">
+                            <div class="card-body text-center">
+                                <h4>${((funcData.total_time / funcData.calls) * 1000).toFixed(2)} ms</h4>
+                                <p>Avg. Execution Time</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+                
+                // User data if available
+                if (Object.keys(funcData.user_data).length > 0) {
+                    detailsHtml += `
+                    <h6>User Stats</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>User ID</th>
+                                    <th>Call Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                    
+                    for (const [userId, count] of Object.entries(funcData.user_data)) {
+                        detailsHtml += `
+                        <tr>
+                            <td>${userId}</td>
+                            <td>${count}</td>
+                        </tr>`;
+                    }
+                    
+                    detailsHtml += `
+                            </tbody>
+                        </table>
+                    </div>`;
+                }
+                
+                // Args data if available
+                if (Object.keys(funcData.args_data).length > 0) {
+                    detailsHtml += `
+                    <h6>Arguments Stats</h6>
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Arguments</th>
+                                    <th>Call Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>`;
+                    
+                    for (const [args, count] of Object.entries(funcData.args_data)) {
+                        detailsHtml += `
+                        <tr>
+                            <td><code>${args}</code></td>
+                            <td>${count}</td>
+                        </tr>`;
+                    }
+                    
+                    detailsHtml += `
+                            </tbody>
+                        </table>
+                    </div>`;
+                }
+                
+                document.getElementById('func-details-container').innerHTML = detailsHtml;
+                $('#details-modal').modal('show');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading function details:', error);
+        });
+}
+
+function resetFunction(funcName) {
+    if (confirm(`Are you sure you want to reset metrics for ${funcName}?`)) {
+        fetch(`/admin/metrics/reset/${funcName}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                window.location.reload();
+            }
+        })
+        .catch(error => {
+            console.error('Error resetting function metrics:', error);
+        });
+    }
+}
+
+function resetAllMetrics() {
+    fetch('/admin/metrics/reset', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            window.location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error resetting all metrics:', error);
+    });
+}
+</script>
+{% endblock %}

@@ -33,10 +33,11 @@ def get_spotify_oauth(user_id=None):
     else:
         # For unauthenticated users, use a temporary cache with session ID
         import secrets
-        cache_id = session.get('spotify_cache_id')
+
+        cache_id = session.get("spotify_cache_id")
         if not cache_id:
             cache_id = secrets.token_urlsafe(8)
-            session['spotify_cache_id'] = cache_id
+            session["spotify_cache_id"] = cache_id
         cache_path = os.path.join(cache_dir, f"temp_{cache_id}_cache")
 
     # Log the cache path being used

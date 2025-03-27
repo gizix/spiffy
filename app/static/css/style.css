@@ -3,6 +3,61 @@
 :root {
     --spotify-green: #1DB954;
     --spotify-black: #191414;
+
+    --text-color: #212529;
+    --bg-color: #fff;
+    --card-bg: #fff;
+    --hover-bg: rgba(29, 185, 84, 0.1);
+    --footer-bg: #f8f9fa;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --nav-bg: #191414;
+    --nav-text: #fff;
+}
+
+[data-bs-theme="dark"] {
+    --text-color: #e6e6e6;
+    --bg-color: #121212;
+    --card-bg: #1e1e1e;
+    --hover-bg: rgba(29, 185, 84, 0.2);
+    --footer-bg: #252525;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --nav-bg: #191414;
+    --nav-text: #fff;
+}
+
+body {
+    color: var(--text-color);
+    background-color: var(--bg-color);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.navbar {
+    background-color: var(--nav-bg);
+}
+
+.navbar .nav-link, .navbar .navbar-brand {
+    color: var(--nav-text);
+}
+
+.navbar .nav-link:hover {
+    color: var(--spotify-green);
+}
+
+#theme-toggle {
+    background: transparent;
+    border: none;
+    color: var(--nav-text);
+    font-size: 1.2rem;
+    padding: 0.25rem 0.5rem;
+    transition: transform 0.3s;
+}
+
+#theme-toggle:hover {
+    color: var(--spotify-green);
+    transform: rotate(15deg);
 }
 
 .btn-success {
@@ -19,38 +74,54 @@
     background-color: var(--spotify-green) !important;
 }
 
-body {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+.navbar-toggler {
+    border-color: var(--nav-text);
 }
 
-.navbar-dark {
-    background-color: var(--spotify-black);
+.navbar-toggler-icon {
+    filter: invert(1);
 }
 
 .footer {
     margin-top: auto;
+    background-color: var(--footer-bg);
 }
 
 /* Card styles */
 .card {
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    transition: transform 0.2s;
+    background-color: var(--card-bg);
+    box-shadow: 0 4px 6px var(--shadow-color);
+    transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .card:hover {
     transform: translateY(-5px);
+    box-shadow: 0 6px 12px var(--shadow-color);
+}
+
+/* Modal backdrop and content */
+.modal-content {
+    background-color: var(--card-bg);
+    color: var(--text-color);
 }
 
 /* Table hover effect */
 .table-hover tbody tr:hover {
-    background-color: rgba(29, 185, 84, 0.1);
+    background-color: var(--hover-bg);
 }
 
 /* Custom badge for Spotify connected status */
 .badge.bg-success {
     background-color: var(--spotify-green) !important;
+}
+
+/* Charts theme adaptation */
+canvas {
+    filter: var(--chart-filter, none);
+}
+
+[data-bs-theme="dark"] canvas {
+    --chart-filter: brightness(0.9);
 }
 
 /* Add space at the bottom of the page */
@@ -66,5 +137,10 @@ body {
 
     h2 {
         font-size: 1.5rem;
+    }
+
+    #theme-toggle {
+        font-size: 1rem;
+        padding: 0.25rem;
     }
 }

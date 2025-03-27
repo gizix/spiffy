@@ -10,6 +10,7 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from app import db
+from app.admin.metrics_decorator import track_metrics
 from app.models import RandomizerConfig, RandomizerRule
 from app.randomizer import randomizer
 from app.spotify.utils import get_spotify_client
@@ -29,6 +30,7 @@ from app.randomizer.helpers import (
     log_playlist_summary,
     track_playlist_creation,
     sync_playlist_history,
+    unlink_deleted_playlists,
 )
 
 from app.randomizer.rule_processor import (
@@ -96,6 +98,7 @@ def index():
 
 @randomizer.route("/create_playlist", methods=["POST"])
 @login_required
+@track_metrics()
 def create_playlist():
     # Start timing the operation
     start_time = datetime.utcnow()
