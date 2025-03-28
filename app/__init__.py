@@ -4,6 +4,7 @@ from flask_migrate import Migrate
 from flask_login import LoginManager
 from config import Config
 import os
+from app.jinja_filters import register_filters
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -18,6 +19,8 @@ def create_app(config_class=Config):
     db.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+
+    register_filters(app)
 
     from app.auth import bp as auth_bp
 

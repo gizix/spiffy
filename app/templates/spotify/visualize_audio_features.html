@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col">
+        <h1>Audio Features Analysis</h1>
+        <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">Back to Dashboard</a>
+        <p class="lead">Analysis of audio features for your saved tracks</p>
+        <p>Due to a policy change from Spotify, Spiffy is limited to a data source of approximately 1.2 million songs.</p>
+        <p>As a result, many of your saved tracks will not have this data.</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5>Audio Features Distribution</h5>
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#radarChartContainer" aria-expanded="true">
+                    <i class="bi bi-chevron-up"></i>
+                </button>
+            </div>
+            <div class="card-body collapse show" id="radarChartContainer">
+                <canvas id="featuresRadarChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h5>Energy vs. Valence</h5>
+                    <small class="text-muted">Energy (intensity) vs. Valence (positiveness)</small>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#energyValenceChartContainer" aria-expanded="true">
+                    <i class="bi bi-chevron-up"></i>
+                </button>
+            </div>
+            <div class="card-body collapse show" id="energyValenceChartContainer">
+                <canvas id="energyValenceChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h5>Danceability vs. Tempo</h5>
+                    <small class="text-muted">Relationship between rhythm and speed</small>
+                </div>
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#danceabilityTempoChartContainer" aria-expanded="true">
+                    <i class="bi bi-chevron-up"></i>
+                </button>
+            </div>
+            <div class="card-body collapse show" id="danceabilityTempoChartContainer">
+                <canvas id="danceabilityTempoChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5>Tracks with Audio Features</h5>
+                    <div class="d-flex">
+                        <button class="btn btn-outline-secondary me-2" id="toggleFilters">
+                            <i class="bi bi-funnel-fill"></i> Filters
+                        </button>
+                        <div class="input-group me-2" style="width: 300px;">
+                            <input type="text" class="form-control" id="searchInput" placeholder="Search...">
+                            <button class="btn btn-outline-secondary" type="button" id="searchButton">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                        <select class="form-select" id="pageSizeSelect" style="width: auto;">
+                            <option value="10">10 per page</option>
+                            <option value="25">25 per page</option>
+                            <option value="50" selected>50 per page</option>
+                            <option value="100">100 per page</option>
+                            <option value="0">Show all</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body collapse" id="filtersContainer">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label for="artistFilter" class="form-label">Artist</label>
+                        <select class="form-select" id="artistFilter">
+                            <option value="">All Artists</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="albumFilter" class="form-label">Album</label>
+                        <select class="form-select" id="albumFilter">
+                            <option value="">All Albums</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="danceabilityFilter" class="form-label">Min. Danceability</label>
+                        <input type="range" class="form-range" id="danceabilityFilter" min="0" max="100" value="0">
+                        <div class="d-flex justify-content-between">
+                            <small>0</small>
+                            <small id="danceabilityValue">0</small>
+                            <small>100</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="energyFilter" class="form-label">Min. Energy</label>
+                        <input type="range" class="form-range" id="energyFilter" min="0" max="100" value="0">
+                        <div class="d-flex justify-content-between">
+                            <small>0</small>
+                            <small id="energyValue">0</small>
+                            <small>100</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex justify-content-end">
+                    <button class="btn btn-secondary" id="resetFilters">Reset Filters</button>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="tracksTable">
+                    <thead>
+                        <tr>
+                            <th class="sortable" data-sort="track">Track <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-sort="artist">Artist <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-sort="album">Album <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-sort="danceability">Danceability <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-sort="energy">Energy <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-sort="valence">Valence <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-sort="tempo">Tempo <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-sort="key">Key <i class="bi bi-arrow-down-up"></i></th>
+                            <th class="sortable" data-sort="source">Source <i class="bi bi-arrow-down-up"></i></th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr class="track-row"
+                            data-track="{{ item.json_data.name }}"
+                            data-artist="{{ item.json_data.artists }}"
+                            data-album="{{ item.json_data.album }}"
+                            data-danceability="{{ '%.2f'|format(item.json_data.danceability) if item.json_data.danceability is defined else '0' }}"
+                            data-energy="{{ '%.2f'|format(item.json_data.energy) if item.json_data.energy is defined else '0' }}"
+                            data-valence="{{ '%.2f'|format(item.json_data.valence) if item.json_data.valence is defined else '0' }}"
+                            data-tempo="{{ '%.0f'|format(item.json_data.tempo) if item.json_data.tempo is defined else '0' }}"
+                            data-key="{{ item.json_data.key if item.json_data.key is defined else '' }}"
+                            data-source="{{ item.json_data.data_source|default('api') }}">
+                            <td>{{ item.json_data.name }}</td>
+                            <td>{{ item.json_data.artists|replace("['", "")|replace("']", "")|replace("'", "")|replace("[", "")|replace("]", "") }}</td>
+                            <td>{{ item.json_data.album }}</td>
+                            <td>{{ "%.2f"|format(item.json_data.danceability) if item.json_data.danceability is defined else "-" }}</td>
+                            <td>{{ "%.2f"|format(item.json_data.energy) if item.json_data.energy is defined else "-" }}</td>
+                            <td>{{ "%.2f"|format(item.json_data.valence) if item.json_data.valence is defined else "-" }}</td>
+                            <td>{{ "%.0f"|format(item.json_data.tempo) if item.json_data.tempo is defined else "-" }}</td>
+                            <td>{{ item.json_data.key if item.json_data.key is defined else "-" }}</td>
+                            <td>
+                                <span class="badge {% if item.json_data.data_source == 'csv' %}bg-success{% else %}bg-primary{% endif %}">
+                                    {{ item.json_data.data_source|default("api") }}
+                                </span>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-primary"
+                                        data-bs-toggle="collapse"
+                                        data-bs-target="#details-{{ loop.index }}">
+                                    Details
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="collapse" id="details-{{ loop.index }}">
+                            <td colspan="10">
+                                <div class="card">
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col">
+                                                <h5>{{ item.json_data.name }}</h5>
+                                                <p>
+                                                    <strong>Artists:</strong> {{ item.json_data.artists|replace("['", "")|replace("']", "")|replace("'", "")|replace("[", "")|replace("]", "") }}
+                                                </p>
+                                                <p>
+                                                    <strong>Album:</strong> {{ item.json_data.album }}
+                                                </p>
+                                                <h6>Audio Features:</h6>
+                                                <div class="row">
+                                                    <div class="col-md-4">
+                                                        <ul class="list-unstyled">
+                                                            <li><strong>Danceability:</strong> {{ "%.2f"|format(item.json_data.danceability) if item.json_data.danceability is defined else "N/A" }}</li>
+                                                            <li><strong>Energy:</strong> {{ "%.2f"|format(item.json_data.energy) if item.json_data.energy is defined else "N/A" }}</li>
+                                                            <li><strong>Valence:</strong> {{ "%.2f"|format(item.json_data.valence) if item.json_data.valence is defined else "N/A" }}</li>
+                                                        </ul>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <ul class="list-unstyled">
+                                                            <li><strong>Tempo:</strong> {{ "%.0f"|format(item.json_data.tempo) }} BPM</li>
+                                                            <li><strong>Key:</strong> {{ item.json_data.key if item.json_data.key is defined else "N/A" }}</li>
+                                                            <li><strong>Mode:</strong> {{ "Major" if item.json_data.mode == 1 else "Minor" if item.json_data.mode == 0 else "N/A" }}</li>
+                                                        </ul>
+                                                    </div>
+                                                    <div class="col-md-4">
+                                                        <ul class="list-unstyled">
+                                                            <li><strong>Acousticness:</strong> {{ "%.2f"|format(item.json_data.acousticness) if item.json_data.acousticness is defined else "N/A" }}</li>
+                                                            <li><strong>Instrumentalness:</strong> {{ "%.2f"|format(item.json_data.instrumentalness) if item.json_data.instrumentalness is defined else "N/A" }}</li>
+                                                            <li><strong>Liveness:</strong> {{ "%.2f"|format(item.json_data.liveness) if item.json_data.liveness is defined else "N/A" }}</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                                <h6>
+                                                    <button class="btn btn-sm btn-outline-secondary json-toggle" type="button"
+                                                        data-bs-toggle="collapse"
+                                                        data-bs-target="#json-details-{{ loop.index }}"
+                                                        aria-expanded="false">
+                                                        Full Data <i class="bi bi-chevron-down"></i>
+                                                    </button>
+                                                </h6>
+                                                <div class="collapse json-container" id="json-details-{{ loop.index }}">
+                                                    <pre class="mb-0"><code>{{ item.json_data | tojson(indent=2) }}</code></pre>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="card-footer d-flex justify-content-between align-items-center">
+                <div>
+                    <span id="displayedRowsInfo">Showing 0 of 0 tracks</span>
+                </div>
+                <nav aria-label="Table pagination">
+                    <ul class="pagination mb-0" id="paginationContainer">
+                        <!-- Pagination will be generated by JavaScript -->
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/audio_features.js') }}"></script>
+{% endblock %}

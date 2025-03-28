@@ -27,6 +27,11 @@ spiffy/
 ├── pyproject.toml
 ├── requirements.txt
 └── run.py
+├── data/
+│   ├── dataset_to_merge.csv
+│   ├── merge_csvs.py
+│   ├── tracks_features.csv
+│   └── tracks_features_orig.csv
 ├── tests/
 │   ├── __init__.py
 │   ├── check_db.py
@@ -34,12 +39,18 @@ spiffy/
 │   └── test_basic.py
 ├── app/
 │   ├── __init__.py
+│   ├── jinja_filters.py
 │   └── models.py
 │   ├── spotify_caches/
 │   │   ├── temp_8OVqDZGogUQ_cache
+│   │   ├── temp_KTkGPdXQWLU_cache
+│   │   ├── temp_XmrmemRR_F4_cache
 │   │   ├── temp_Z0GmY20tjKY_cache
 │   │   ├── temp_c-BHH9sP-Eo_cache
+│   │   ├── temp_ec0j7bOI4TI_cache
+│   │   ├── temp_pihGgebam0E_cache
 │   │   ├── temp_tQvXOVDil1E_cache
+│   │   ├── temp_wTokxMEjMrY_cache
 │   │   ├── temp_xhKNB7Kgh7c_cache
 │   │   ├── user_1_cache
 │   │   └── user_2_cache
@@ -50,6 +61,7 @@ spiffy/
 │   │   └── routes.py
 │   ├── spotify/
 │   │   ├── __init__.py
+│   │   ├── csv_data_manager.py
 │   │   ├── routes.py
 │   │   └── utils.py
 │   ├── templates/
@@ -58,6 +70,8 @@ spiffy/
 │   │   │   ├── beta_signups.html
 │   │   │   └── metrics_dashboard.html
 │   │   ├── spotify/
+│   │   │   ├── visualize_artists.html
+│   │   │   ├── visualize_audio_features.html
 │   │   │   ├── visualize_generic.html
 │   │   │   ├── visualize_saved_tracks.html
 │   │   │   └── visualize_top_tracks.html
@@ -95,15 +109,15 @@ spiffy/
 │   │   ├── images/
 │   │   │   └── spiffy-logo.png
 │   │   ├── js/
+│   │   │   ├── artists.js
+│   │   │   ├── audio_features.js
 │   │   │   ├── loading-helper.js
 │   │   │   ├── saved_tracks.js
 │   │   │   └── theme-manager.js
 ├── instance/
-│   ├── app.db
-│   └── metrics.json
+│   └── app.db
 │   ├── user_data/
-│   │   ├── user_1.db
-│   │   └── user_2.db
+│   │   └── user_1.db
 ├── logs/
 │   └── spotify_explorer.log
 ├── assets/
@@ -122,7 +136,7 @@ spiffy/
 
 ### .cache
 
-Text file: {"access_token": "BQCA7q5G96ba0NO1qZ2JZCTjgcmRwTN7zNCBfGRgbwQpleVYHpmESUWrwlq_jupB5mJxqlVMQQEspTzMNa...
+Text file: {"access_token": "BQDfcx6VAoYe_jYyJJRZ0sHsYAWy77CejsZFwG1cH7J8XnRnPwPFAfTMWARtTfIgCNrcYLUeNh6s18L63B...
 
 ### .env
 
@@ -176,7 +190,7 @@ Generate a summary for the given file.
 
 ### init_data.py
 
-Imports: app, app.models Defines functions: init_spotify_data_types
+Imports: app.models, app Defines functions: init_spotify_data_types
 
 ### poetry.lock
 
@@ -199,17 +213,39 @@ click==8.1...
 
 Main application entry point
 
+### data/dataset_to_merge.csv
+
+File with .csv extension
+
+### data/merge_csvs.py
+
+Merge two CSV files based on common columns.
+
+    Parameters:
+    - small_csv_filename: Filename of the smaller CSV file with target columns
+    - large_csv_filename: Filename of the larger CSV file to merge into
+    - output_filename: Filename to save the merged CSV file
+    - data_dir: Optional directory where CSV files are located (uses script dir by default)
+
+### data/tracks_features.csv
+
+File with .csv extension
+
+### data/tracks_features_orig.csv
+
+File with .csv extension
+
 ### tests/__init__.py
 
 Package initialization file
 
 ### tests/check_db.py
 
-Imports: app, flask_migrate Defines functions: check_database
+Imports: flask_migrate, app Defines functions: check_database
 
 ### tests/debug_users.py
 
-Imports: sys, app, app.models Defines functions: debug_users
+Imports: app.models, app, sys Defines functions: debug_users
 
 ### tests/test_basic.py
 
@@ -219,6 +255,11 @@ Python script with 1 lines
 
 Package initialization file
 
+### app/jinja_filters.py
+
+Custom Jinja2 filters for the application.
+This module contains filters that can be registered with Flask to enhance templates.
+
 ### app/models.py
 
 Database models defining: User, SpotifyDataType, UserDataSync, RandomizerConfig, RandomizerRule, PlaylistCreationHistory, BetaSignup
@@ -226,6 +267,14 @@ Database models defining: User, SpotifyDataType, UserDataSync, RandomizerConfig,
 ### app/spotify_caches/temp_8OVqDZGogUQ_cache
 
 Text file: {"access_token": "BQD95-qq4KmbBBrVXdn4ZfHtJKYmlc0aLXgxJHm7AoKJBRdda-SbvmjwxCE-97XwfQ8A-L09tOT8GceaAq...
+
+### app/spotify_caches/temp_KTkGPdXQWLU_cache
+
+Text file: {"access_token": "BQDqsJsKQRFaIS93G0m4B0WNI3QxEjVW_vvqtUwrTsKgoPG5XojuTdUFfVqPAEyvCn0D39m-Qpl1Twx-vz...
+
+### app/spotify_caches/temp_XmrmemRR_F4_cache
+
+Text file: {"access_token": "BQBd_mkAtYWpqkWvJX1dEIctpp8FpqTb9SMLjzcaVKu_P9Rreilm8kPaQda-4pN4D0ApvwsNOjKmDXbcpT...
 
 ### app/spotify_caches/temp_Z0GmY20tjKY_cache
 
@@ -235,9 +284,21 @@ Text file: {"access_token": "BQAy5FCXKTiecFWUnRrczvwnZqlxVmHh8HS5-f7D--seRSLHKzY
 
 Text file: {"access_token": "BQCkThB2HP_cptM6qWWo1sw0fmsLsSTRlJPLRfhtpbVW30EQcjZvSM9T8EUZ2QO9rzKYNxEs5lar2KbFhh...
 
+### app/spotify_caches/temp_ec0j7bOI4TI_cache
+
+Text file: {"access_token": "BQBgVwuBdzgrObHKwHE7dfnCiO7ANpN1HB-OFGENLk44Rdbou43CKfyvtWQ8ksT3xJc8m51Yotyp4zWckJ...
+
+### app/spotify_caches/temp_pihGgebam0E_cache
+
+Text file: {"access_token": "BQANeo8B7dYmTNabzh3vy5igLmy5D3geo5oU_pL5yFxbiSj_5tb9ljjrvaxNULU7UCsfwFexxEjNce7FZ5...
+
 ### app/spotify_caches/temp_tQvXOVDil1E_cache
 
 Text file: {"access_token": "BQDKrCg3mgA8Sn3PZd9NbmcH-C39ULqfq6DpHZySnXixKb8jY_m5AJ4u-jnNwK1tnJZq-xM-GczTMyL4WM...
+
+### app/spotify_caches/temp_wTokxMEjMrY_cache
+
+Text file: {"access_token": "BQDtAcKPGSqgGN8i3C5Vb3cxTtllcm_m65ncMF_tSgYm3VSe1levFCuh_GZjSgyqL51WJar00wU67dzMRt...
 
 ### app/spotify_caches/temp_xhKNB7Kgh7c_cache
 
@@ -245,7 +306,7 @@ Text file: {"access_token": "BQCKe93HGdzTYHttMT5A4KZ2xQPBG7daWYX_1c0sQ5hDf9isA5G
 
 ### app/spotify_caches/user_1_cache
 
-Text file: {"access_token": "BQDKrCg3mgA8Sn3PZd9NbmcH-C39ULqfq6DpHZySnXixKb8jY_m5AJ4u-jnNwK1tnJZq-xM-GczTMyL4WM...
+Text file: {"access_token": "BQDqsJsKQRFaIS93G0m4B0WNI3QxEjVW_vvqtUwrTsKgoPG5XojuTdUFfVqPAEyvCn0D39m-Qpl1Twx-vz...
 
 ### app/spotify_caches/user_2_cache
 
@@ -271,9 +332,13 @@ Route handlers for: /beta-signups, /export-signups/<format>
 
 Package initialization file
 
+### app/spotify/csv_data_manager.py
+
+Imports 6 modules Defines classes: TrackFeaturesManager Defines 9 functions
+
 ### app/spotify/routes.py
 
-Route handlers for: /connect, /callback, /disconnect, /sync/<data_type>, /visualize/<data_type>, /get_playlists
+Route handlers for: /progress/<operation_id>, /connect, /callback, /disconnect, /sync/<data_type>, /visualize/<data_type>, /get_playlists
 
 ### app/spotify/utils.py
 
@@ -290,6 +355,14 @@ Base template providing layout structure for the application
 ### app/templates/admin/metrics_dashboard.html
 
  dashboard template extending base.html
+
+### app/templates/spotify/visualize_artists.html
+
+Spotify template extending base.html
+
+### app/templates/spotify/visualize_audio_features.html
+
+Spotify template extending base.html
 
 ### app/templates/spotify/visualize_generic.html
 
@@ -399,6 +472,14 @@ CSS file with 24 style definitions
 
 Binary file or encoding issues
 
+### app/static/js/artists.js
+
+File with .js extension
+
+### app/static/js/audio_features.js
+
+File with .js extension
+
 ### app/static/js/loading-helper.js
 
 File with .js extension
@@ -415,15 +496,7 @@ File with .js extension
 
 Binary file or encoding issues
 
-### instance/metrics.json
-
-File with .json extension
-
 ### instance/user_data/user_1.db
-
-Binary file or encoding issues
-
-### instance/user_data/user_2.db
 
 Binary file or encoding issues
 
@@ -463,4 +536,4 @@ File with .log extension
 
 This application was created using Flask, Spotipy, and other open-source libraries.
 
-Generated on: 2025-03-27
+Generated on: 2025-03-28

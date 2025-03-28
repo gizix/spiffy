@@ -34,6 +34,24 @@ def init_spotify_data_types():
             "endpoint": "me/player/recently-played",
             "required_scope": "user-read-recently-played",
         },
+        {
+            "name": "audio_features",
+            "description": "Audio features for your saved tracks. *Limited data, Spotify removed this API*",
+            "endpoint": "audio-features",
+            "required_scope": "user-library-read",
+        },
+        {
+            "name": "artists",
+            "description": "All artists from your saved tracks, playlists, and top tracks",
+            "endpoint": "artists",
+            "required_scope": "user-library-read",
+        },
+        # {
+        #     "name": "audio_analysis",
+        #     "description": "Detailed audio analysis for your saved tracks",
+        #     "endpoint": "audio-analysis",
+        #     "required_scope": "user-library-read",
+        # },
     ]
 
     for data_type in data_types:

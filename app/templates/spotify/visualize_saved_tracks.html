@@ -24,10 +24,13 @@
     <div class="row mb-4">
         <div class="col-md-12">
             <div class="card">
-                <div class="card-header">
+                <div class="card-header d-flex justify-content-between align-items-center">
                     <h5>Statistics</h5>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#statisticsContainer" aria-expanded="true">
+                        <i class="bi bi-chevron-up"></i>
+                    </button>
                 </div>
-                <div class="card-body">
+                <div class="card-body collapse show" id="statisticsContainer">
                     <div class="row">
                         <div class="col-md-6">
                             <canvas id="popularityDistribution" width="400" height="200"></canvas>
@@ -240,8 +243,17 @@
                                                             Unknown
                                                         {% endif %}
                                                     </p>
-                                                    <h6>Full Data:</h6>
-                                                    <pre class="mb-0"><code>{{ item.json_data | tojson(indent=2) }}</code></pre>
+                                                    <h6>
+                                                        <button class="btn btn-sm btn-outline-secondary json-toggle" type="button"
+                                                            data-bs-toggle="collapse"
+                                                            data-bs-target="#json-details-{{ loop.index }}"
+                                                            aria-expanded="false">
+                                                            Full Data <i class="bi bi-chevron-down"></i>
+                                                        </button>
+                                                    </h6>
+                                                    <div class="collapse json-container" id="json-details-{{ loop.index }}">
+                                                        <pre class="mb-0"><code>{{ item.json_data | tojson(indent=2) }}</code></pre>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
@@ -271,4 +283,56 @@
 
 {% block scripts %}
 <script src="{{ url_for('static', filename='js/saved_tracks.js') }}"></script>
+<script>
+// Add collapsible chart functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Add CSS for collapsible chart sections
+    const style = document.createElement('style');
+    style.textContent = `
+        .chart-toggle i {
+            transition: transform 0.2s;
+        }
+        .chart-toggle[aria-expanded="false"] i {
+            transform: rotate(180deg);
+        }
+    `;
+    document.head.appendChild(style);
+
+    // Track chart collapse state in localStorage
+    const collapseButtons = document.querySelectorAll('[data-bs-toggle="collapse"]');
+    collapseButtons.forEach(button => {
+        if (button.getAttribute('data-bs-target')) {
+            const targetId = button.getAttribute('data-bs-target').substring(1);
+            const storageKey = `spiffy-collapse-${targetId}`;
+
+            // Check if we have a stored preference
+            const isCollapsed = localStorage.getItem(storageKey) === 'collapsed';
+            if (isCollapsed) {
+                const target = document.getElementById(targetId);
+                if (target) {
+                    target.classList.remove('show');
+                    button.setAttribute('aria-expanded', 'false');
+                    button.querySelector('i')?.classList.replace('bi-chevron-up', 'bi-chevron-down');
+                }
+            }
+
+            // Save collapse state
+            button.addEventListener('click', function() {
+                const isExpanded = button.getAttribute('aria-expanded') === 'true';
+                localStorage.setItem(storageKey, isExpanded ? 'collapsed' : 'expanded');
+
+                // Update the icon
+                const icon = button.querySelector('i');
+                if (icon) {
+                    if (isExpanded) {
+                        icon.classList.replace('bi-chevron-up', 'bi-chevron-down');
+                    } else {
+                        icon.classList.replace('bi-chevron-down', 'bi-chevron-up');
+                    }
+                }
+            });
+        }
+    });
+});
+</script>
 {% endblock %}

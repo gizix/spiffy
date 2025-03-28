@@ -25,5 +25,14 @@ class Config:
         basedir, "instance", "user_data"
     )
 
+    # Track features CSV configuration
+    TRACK_FEATURES_CSV_PATH = (
+        os.environ.get("TRACK_FEATURES_CSV_PATH") or "data/tracks_features.csv"
+    )
+    # Use CSV for audio features instead of Spotify API
+    USE_CSV_FOR_AUDIO_FEATURES = os.environ.get(
+        "USE_CSV_FOR_AUDIO_FEATURES", "True"
+    ).lower() in ("true", "yes", "1")
+
     CACHE_TYPE = "simple"
     CACHE_DEFAULT_TIMEOUT = 300

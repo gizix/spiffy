@@ -33,9 +33,12 @@
                 {% endif %}
             </div>
             <div class="card-footer d-flex justify-content-between">
+                {% set operation_id = data_type.name ~ "_sync_" ~ current_user.id %}
                 <a href="{{ url_for('spotify.sync_data', data_type=data_type.name) }}"
                    class="btn btn-primary"
                    data-loading="true"
+                   data-loading-show-progress="true"
+                   data-loading-operation-id="{{ data_type.name }}_sync_{{ current_user.id }}"
                    data-loading-message="Syncing {{ data_type.name.replace('_', ' ').title() }}"
                    data-loading-subtext="This may take a while depending on your library size">
                     {% if sync_status[data_type.id] %}Update{% else %}Sync{% endif %}
