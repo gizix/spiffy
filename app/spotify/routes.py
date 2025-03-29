@@ -1498,6 +1498,15 @@ def visualize(data_type):
             js_items = []
             for item in items:
                 if "json_data" in item and item["json_data"]:
+                    # Ensure required attributes exist with defaults
+                    required_attrs = ["tempo", "danceability", "energy", "valence",
+                                      "acousticness", "instrumentalness", "liveness",
+                                      "speechiness", "key"]
+
+                    for attr in required_attrs:
+                        if attr not in item["json_data"]:
+                            item["json_data"][attr] = 0
+
                     js_item = item["json_data"].copy()
                     # Add any additional needed fields
                     js_item["id"] = item.get("id", "")
