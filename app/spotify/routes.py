@@ -1305,7 +1305,7 @@ def visualize(data_type):
                 else:
                     raise
 
-        if data_type == "artists":
+        elif data_type == "artists":
             # Log that we're starting to visualize artists
             current_app.logger.info(f"Visualizing artists for user {current_user.id}")
 
@@ -1405,22 +1405,22 @@ def visualize(data_type):
 
                     # For audio features, handle the case where we joined with saved_tracks
                     if (
-                        data_type == "audio_features"
-                        and "track_data" in item_dict
-                        and item_dict["track_data"]
+                            data_type == "audio_features"
+                            and "track_data" in item_dict
+                            and item_dict["track_data"]
                     ):
                         track_info = json.loads(item_dict["track_data"])
 
                         # Ensure audio feature data has essential track info
                         if (
-                            "name" not in item_dict["json_data"]
-                            and "name" in track_info
+                                "name" not in item_dict["json_data"]
+                                and "name" in track_info
                         ):
                             item_dict["json_data"]["name"] = track_info["name"]
 
                         if (
-                            "artists" not in item_dict["json_data"]
-                            and "artists" in track_info
+                                "artists" not in item_dict["json_data"]
+                                and "artists" in track_info
                         ):
                             # Handle both string and array of artist objects
                             # Handle different artist formats
@@ -1439,7 +1439,7 @@ def visualize(data_type):
                             elif isinstance(artists_data, str):
                                 # Try to parse string representations like "['Artist1', 'Artist2']"
                                 if artists_data.startswith(
-                                    "["
+                                        "["
                                 ) and artists_data.endswith("]"):
                                     try:
                                         # Convert to proper list if it's a string representation
@@ -1460,8 +1460,8 @@ def visualize(data_type):
                                 item_dict["json_data"]["artists"] = str(artists_data)
 
                         if (
-                            "album" not in item_dict["json_data"]
-                            and "album" in track_info
+                                "album" not in item_dict["json_data"]
+                                and "album" in track_info
                         ):
                             # Handle both string and album object
                             if isinstance(track_info.get("album"), dict):
@@ -1489,35 +1489,76 @@ def visualize(data_type):
         # Check if the specific template exists, otherwise use a generic one
         template_path = f"spotify/visualize_{data_type}.html"
         if not os.path.exists(
-            os.path.join(current_app.root_path, "templates", template_path)
+                os.path.join(current_app.root_path, "templates", template_path)
         ):
             template_path = "spotify/visualize_generic.html"
 
+        # For audio_features, prepare a simpler data structure for the JavaScript
         # For audio_features, prepare a simpler data structure for the JavaScript
         if data_type == "audio_features":
             js_items = []
             for item in items:
                 if "json_data" in item and item["json_data"]:
-                    js_item = item["json_data"].copy()
+                    # Create a new dictionary for JavaScript with all required fields
+                    js_item = {}
 
-                    # Add any additional needed fields
+                    # Copy basic track info
                     js_item["id"] = item.get("id", "")
                     js_item["track_id"] = item.get("track_id", "")
+                    js_item["name"] = item["json_data"].get("name", "Unknown")
+                    js_item["artists"] = item["json_data"].get("artists", "") or item["json_data"].get("artists_x",
+                                                                                                       "Unknown")
+                    js_item["album"] = item["json_data"].get("album", "") or item["json_data"].get("album_name",
+                                                                                                   "Unknown")
 
-                    # Check if essential fields exist - if not, skip this item
-                    has_essential_data = True
-                    for attr in ["tempo", "danceability", "energy", "valence"]:
-                        if attr not in js_item:
-                            # Log the missing attribute instead of setting it to 0
-                            current_app.logger.warning(f"Track {js_item.get('name', 'Unknown')} is missing {attr}")
-                            has_essential_data = False
+                    # Handle the suffixed column names (_x and _y variants)
+                    # Try _x version first, then _y version, then plain version, then default to 0
+                    js_item["tempo"] = item["json_data"].get("tempo_x", item["json_data"].get("tempo_y",
+                                                                                              item["json_data"].get(
+                                                                                                  "tempo", 0)))
+                    js_item["danceability"] = item["json_data"].get("danceability_x",
+                                                                    item["json_data"].get("danceability_y",
+                                                                                          item["json_data"].get(
+                                                                                              "danceability", 0)))
+                    js_item["energy"] = item["json_data"].get("energy_x", item["json_data"].get("energy_y",
+                                                                                                item["json_data"].get(
+                                                                                                    "energy", 0)))
+                    js_item["valence"] = item["json_data"].get("valence_x", item["json_data"].get("valence_y",
+                                                                                                  item["json_data"].get(
+                                                                                                      "valence", 0)))
+                    js_item["acousticness"] = item["json_data"].get("acousticness_x",
+                                                                    item["json_data"].get("acousticness_y",
+                                                                                          item["json_data"].get(
+                                                                                              "acousticness", 0)))
+                    js_item["instrumentalness"] = item["json_data"].get("instrumentalness_x",
+                                                                        item["json_data"].get("instrumentalness_y",
+                                                                                              item["json_data"].get(
+                                                                                                  "instrumentalness",
+                                                                                                  0)))
+                    js_item["liveness"] = item["json_data"].get("liveness_x", item["json_data"].get("liveness_y", item[
+                        "json_data"].get("liveness", 0)))
+                    js_item["speechiness"] = item["json_data"].get("speechiness_x",
+                                                                   item["json_data"].get("speechiness_y",
+                                                                                         item["json_data"].get(
+                                                                                             "speechiness", 0)))
+                    js_item["key"] = item["json_data"].get("key_x", item["json_data"].get("key_y",
+                                                                                          item["json_data"].get("key",
+                                                                                                                0)))
+                    js_item["mode"] = item["json_data"].get("mode_x", item["json_data"].get("mode_y",
+                                                                                            item["json_data"].get(
+                                                                                                "mode", 0)))
 
-                    # Only include items with essential data
-                    if has_essential_data:
-                        js_items.append(js_item)
+                    # Add data source
+                    js_item["data_source"] = item["json_data"].get("data_source", "unknown")
 
-            # Log info about how many items were included vs excluded
-            current_app.logger.info(f"Included {len(js_items)} tracks with complete data out of {len(items)} total")
+                    js_items.append(js_item)
+
+            # Log info about the processed data
+            current_app.logger.info(f"Processed {len(js_items)} tracks with audio features")
+            if js_items:
+                sample = js_items[0]
+                current_app.logger.info(
+                    f"Sample processed track: {sample.get('name')} - Tempo: {sample.get('tempo')}, Energy: {sample.get('energy')}")
 
             return render_template(
                 template_path,

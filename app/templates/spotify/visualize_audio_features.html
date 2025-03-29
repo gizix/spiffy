@@ -149,20 +149,20 @@
                             data-track="{{ item.json_data.name }}"
                             data-artist="{{ item.json_data.artists }}"
                             data-album="{{ item.json_data.album }}"
-                            data-danceability="{{ '%.2f'|format(item.json_data.danceability) if item.json_data.danceability is defined else '0' }}"
-                            data-energy="{{ '%.2f'|format(item.json_data.energy) if item.json_data.energy is defined else '0' }}"
-                            data-valence="{{ '%.2f'|format(item.json_data.valence) if item.json_data.valence is defined else '0' }}"
-                            data-tempo="{{ '%.0f'|format(item.json_data.tempo) if item.json_data.tempo is defined else '0' }}"
-                            data-key="{{ item.json_data.key if item.json_data.key is defined else '' }}"
+                            data-danceability="{{ '%.2f'|format(item.json_data.danceability_x or item.json_data.danceability_y or 0) }}"
+                            data-energy="{{ '%.2f'|format(item.json_data.energy_x or item.json_data.energy_y or 0) }}"
+                            data-valence="{{ '%.2f'|format(item.json_data.valence_x or item.json_data.valence_y or 0) }}"
+                            data-tempo="{{ '%.0f'|format(item.json_data.tempo_x or item.json_data.tempo_y or 0) }}"
+                            data-key="{{ item.json_data.key_x or item.json_data.key_y or '' }}"
                             data-source="{{ item.json_data.data_source|default('api') }}">
                             <td>{{ item.json_data.name }}</td>
                             <td>{{ item.json_data.artists|replace("['", "")|replace("']", "")|replace("'", "")|replace("[", "")|replace("]", "") }}</td>
                             <td>{{ item.json_data.album }}</td>
-                            <td>{{ "%.2f"|format(item.json_data.danceability) if item.json_data.danceability is defined else "-" }}</td>
-                            <td>{{ "%.2f"|format(item.json_data.energy) if item.json_data.energy is defined else "-" }}</td>
-                            <td>{{ "%.2f"|format(item.json_data.valence) if item.json_data.valence is defined else "-" }}</td>
-                            <td>{{ "%.0f"|format(item.json_data.tempo) if item.json_data.tempo is defined else "-" }}</td>
-                            <td>{{ item.json_data.key if item.json_data.key is defined else "-" }}</td>
+                            <td>{{ "%.2f"|format(item.json_data.danceability_x or item.json_data.danceability_y or item.json_data.danceability or 0) }}</td>
+                            <td>{{ "%.2f"|format(item.json_data.energy_x or item.json_data.energy_y or item.json_data.energy or 0) }}</td>
+                            <td>{{ "%.2f"|format(item.json_data.valence_x or item.json_data.valence_y or item.json_data.valence or 0) }}</td>
+                            <td>{{ "%.0f"|format(item.json_data.tempo_x or item.json_data.tempo_y or item.json_data.tempo or 0) }}</td>
+                            <td>{{ item.json_data.key_x or item.json_data.key_y or item.json_data.key or "-" }}</td>
                             <td>
                                 <span class="badge {% if item.json_data.data_source == 'csv' %}bg-success{% else %}bg-primary{% endif %}">
                                     {{ item.json_data.data_source|default("api") }}
@@ -193,23 +193,23 @@
                                                 <div class="row">
                                                     <div class="col-md-4">
                                                         <ul class="list-unstyled">
-                                                            <li><strong>Danceability:</strong> {{ "%.2f"|format(item.json_data.danceability) if item.json_data.danceability is defined else "N/A" }}</li>
-                                                            <li><strong>Energy:</strong> {{ "%.2f"|format(item.json_data.energy) if item.json_data.energy is defined else "N/A" }}</li>
-                                                            <li><strong>Valence:</strong> {{ "%.2f"|format(item.json_data.valence) if item.json_data.valence is defined else "N/A" }}</li>
+                                                            <li><strong>Danceability:</strong> {{ "%.2f"|format(item.json_data.danceability_x or item.json_data.danceability_y or item.json_data.danceability or 0) }}</li>
+                                                            <li><strong>Energy:</strong> {{ "%.2f"|format(item.json_data.energy_x or item.json_data.energy_y or item.json_data.energy or 0) }}</li>
+                                                            <li><strong>Valence:</strong> {{ "%.2f"|format(item.json_data.valence_x or item.json_data.valence_y or item.json_data.valence or 0) }}</li>
                                                         </ul>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <ul class="list-unstyled">
-                                                            <li><strong>Tempo:</strong> {{ "%.0f"|format(item.json_data.tempo) }} BPM</li>
-                                                            <li><strong>Key:</strong> {{ item.json_data.key if item.json_data.key is defined else "N/A" }}</li>
-                                                            <li><strong>Mode:</strong> {{ "Major" if item.json_data.mode == 1 else "Minor" if item.json_data.mode == 0 else "N/A" }}</li>
+                                                            <li><strong>Tempo:</strong> {{ "%.0f"|format(item.json_data.tempo_x or item.json_data.tempo_y or item.json_data.tempo or 0) }} BPM</li>
+                                                            <li><strong>Key:</strong> {{ item.json_data.key_x or item.json_data.key_y or item.json_data.key or "N/A" }}</li>
+                                                            <li><strong>Mode:</strong> {{ "Major" if (item.json_data.mode_x or item.json_data.mode_y or item.json_data.mode) == 1 else "Minor" if (item.json_data.mode_x or item.json_data.mode_y or item.json_data.mode) == 0 else "N/A" }}</li>
                                                         </ul>
                                                     </div>
                                                     <div class="col-md-4">
                                                         <ul class="list-unstyled">
-                                                            <li><strong>Acousticness:</strong> {{ "%.2f"|format(item.json_data.acousticness) if item.json_data.acousticness is defined else "N/A" }}</li>
-                                                            <li><strong>Instrumentalness:</strong> {{ "%.2f"|format(item.json_data.instrumentalness) if item.json_data.instrumentalness is defined else "N/A" }}</li>
-                                                            <li><strong>Liveness:</strong> {{ "%.2f"|format(item.json_data.liveness) if item.json_data.liveness is defined else "N/A" }}</li>
+                                                            <li><strong>Acousticness:</strong> {{ "%.2f"|format(item.json_data.acousticness_x or item.json_data.acousticness_y or item.json_data.acousticness or 0) }}</li>
+                                                            <li><strong>Instrumentalness:</strong> {{ "%.2f"|format(item.json_data.instrumentalness_x or item.json_data.instrumentalness_y or item.json_data.instrumentalness or 0) }}</li>
+                                                            <li><strong>Liveness:</strong> {{ "%.2f"|format(item.json_data.liveness_x or item.json_data.liveness_y or item.json_data.liveness or 0) }}</li>
                                                         </ul>
                                                     </div>
                                                 </div>
