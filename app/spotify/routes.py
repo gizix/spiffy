@@ -1498,20 +1498,26 @@ def visualize(data_type):
             js_items = []
             for item in items:
                 if "json_data" in item and item["json_data"]:
-                    # Ensure required attributes exist with defaults
-                    required_attrs = ["tempo", "danceability", "energy", "valence",
-                                      "acousticness", "instrumentalness", "liveness",
-                                      "speechiness", "key"]
-
-                    for attr in required_attrs:
-                        if attr not in item["json_data"]:
-                            item["json_data"][attr] = 0
-
                     js_item = item["json_data"].copy()
+
                     # Add any additional needed fields
                     js_item["id"] = item.get("id", "")
                     js_item["track_id"] = item.get("track_id", "")
-                    js_items.append(js_item)
+
+                    # Check if essential fields exist - if not, skip this item
+                    has_essential_data = True
+                    for attr in ["tempo", "danceability", "energy", "valence"]:
+                        if attr not in js_item:
+                            # Log the missing attribute instead of setting it to 0
+                            current_app.logger.warning(f"Track {js_item.get('name', 'Unknown')} is missing {attr}")
+                            has_essential_data = False
+
+                    # Only include items with essential data
+                    if has_essential_data:
+                        js_items.append(js_item)
+
+            # Log info about how many items were included vs excluded
+            current_app.logger.info(f"Included {len(js_items)} tracks with complete data out of {len(items)} total")
 
             return render_template(
                 template_path,
